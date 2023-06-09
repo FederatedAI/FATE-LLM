@@ -28,6 +28,7 @@ class LLAMATokenizerDataset(Dataset):
                  pad_token_id=0,
                  bos_token_id=1,
                  eos_token_id=2,
+                 add_eos_token=True,
                  prompt_template=None,
                  add_special_tokens=False,
                  prompt_column="content",
@@ -40,7 +41,7 @@ class LLAMATokenizerDataset(Dataset):
         self.add_special_tokens = add_special_tokens
         self.max_length = text_max_length
         self.tokenizer_name_or_path = tokenizer_name_or_path
-        self.tokenizer = LlamaTokenizer.from_pretrained(self.tokenizer_name_or_path)
+        self.tokenizer = LlamaTokenizer.from_pretrained(self.tokenizer_name_or_path, add_eos_token=add_eos_token)
         self.tokenizer.pad_token_id = pad_token_id
         self.tokenizer.bos_token_id = bos_token_id
         self.tokenizer.eos_token_id = eos_token_id
