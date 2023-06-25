@@ -25,3 +25,4 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 ## Quick Start
 - [Federated ChatGLM-6B Training](./doc/tutorial/ChatGLM-6B_ds.ipynb)
 - [GPT-2 Training](./doc/tutorial/GPT2-example.ipynb)
+- [Builtin Models](./doc/tutorial/builtin_models.md)
