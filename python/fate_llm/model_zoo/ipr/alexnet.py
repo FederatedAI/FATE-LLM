@@ -1,5 +1,5 @@
 import torch.nn as nn
-from federatedml.nn.model_zoo.ipr.sign_block import SignatureConv, ConvBlock
+from federatedml.nn.model_zoo.sign_block import SignatureConv, ConvBlock
 
 
 class SignAlexNet(nn.Module):

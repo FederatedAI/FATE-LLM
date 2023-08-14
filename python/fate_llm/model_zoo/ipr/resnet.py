@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from federatedml.nn.model_zoo.ipr.sign_block import ConvBlock, SignatureConv
+from federatedml.nn.model_zoo.sign_block import ConvBlock, SignatureConv
 
 
 # The layer define for ResNet18, add signature to last layer
@@ -62,7 +62,7 @@ class BasicPrivateBlock(nn.Module):
 
 class SignResnet18(nn.Module):
 
-    def __init__(self, num_classes=100):
+    def __init__(self, num_classes=100): #BasicPrivateBlock, [2, 2, 2, 2], **model_kwargs
 
         super(SignResnet18, self).__init__()
         num_blocks = [2, 2, 2, 2]
@@ -77,7 +77,7 @@ class SignResnet18(nn.Module):
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2, model_define=model_define['layer4'])
         self.linear = nn.Linear(512 * block.expansion, num_classes)
 
-    def _make_layer(self, block, planes, num_blocks, stride, model_define): 
+    def _make_layer(self, block, planes, num_blocks, stride, model_define): #BasicPrivateBlock, planes = 512, numblocks = 2, stride =2, **model_kwargs
         strides = [stride] + [1] * (num_blocks - 1) # [2] + [1]*1 = [2, 1]
         layers = []
         for i, stride in enumerate(strides): #stride = 2 & 1
