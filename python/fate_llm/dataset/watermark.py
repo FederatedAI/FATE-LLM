@@ -75,7 +75,12 @@ class WaterMarkImageDataset(WaterMarkDataset):
             return ('watermark', self.watermark_dataset[item - len(self.normal_dataset)])
         
     def __len__(self):
-        return len(self.normal_dataset) + len(self.watermark_dataset)
+        len_ = 0
+        if self.normal_dataset is not None:
+            len_ += len(self.normal_dataset)
+        if self.watermark_dataset is not None:
+            len_ += len(self.watermark_dataset)
+        return len_
 
     def load(self, file_path):
         
@@ -120,10 +125,5 @@ class WaterMarkImageDataset(WaterMarkDataset):
         return self.watermark_dataset
 
     def get_classes(self):
-        return self.noraml_dataset.get_classes()
+        return self.normal_dataset.get_classes()
 
-    # def get_sample_ids(self):
-    #     return self.sample_ids
-
-    # def get_match_ids(self):
-    #     return self.match_ids
