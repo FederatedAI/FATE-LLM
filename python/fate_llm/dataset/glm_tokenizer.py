@@ -38,7 +38,8 @@ class GLMTokenizerDataset(Dataset):
         self.truncation = truncation
         self.max_length = text_max_length
         self.tokenizer_name_or_path = tokenizer_name_or_path
-        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name_or_path, trust_remote_code=trust_remote_code)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.tokenizer_name_or_path, trust_remote_code=trust_remote_code)
         self.tokenizer.padding_side = padding_side
         if pad_token is not None:
             self.tokenizer.add_special_tokens({'pad_token': pad_token})
@@ -65,7 +66,8 @@ class GLMTokenizerDataset(Dataset):
         if len(target_ids) > self.max_length - 2:
             target_ids = target_ids[: self.max_length - 2]
 
-        input_ids = self.tokenizer.build_inputs_with_special_tokens(prompt_ids, target_ids)
+        input_ids = self.tokenizer.build_inputs_with_special_tokens(
+            prompt_ids, target_ids)
 
         seq_length = input_ids.index(self.tokenizer.bos_token_id)
         labels = [-100] * seq_length + input_ids[seq_length:]

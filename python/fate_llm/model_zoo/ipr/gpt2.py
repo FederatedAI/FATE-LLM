@@ -1,6 +1,6 @@
 from torch.nn import Module
 from transformers import GPT2ForTokenClassification, GPT2ForSequenceClassification
-from federatedml.nn.model_zoo.sign_block import recursive_replace_layernorm
+from fate_llm.model_zoo.sign_block import recursive_replace_layernorm
 
 
 class SignGPT2ForTokenClassification(Module):
@@ -9,9 +9,10 @@ class SignGPT2ForTokenClassification(Module):
         super().__init__()
         if model_path is None:
             model_path = 'gpt2'
-        
+
         self.model_path = model_path
-        self.model = GPT2ForTokenClassification.from_pretrained(model_path, num_labels=num_labels)
+        self.model = GPT2ForTokenClassification.from_pretrained(
+            model_path, num_labels=num_labels)
 
         # replace layernorm by SignatureLayerNorm
         sub_gpt2 = self.model.transformer.h[10:]
@@ -27,9 +28,10 @@ class SignGPT2ForSequenceClassification(Module):
         super().__init__()
         if model_path is None:
             model_path = 'gpt2'
-        
+
         self.model_path = model_path
-        self.model = GPT2ForSequenceClassification.from_pretrained(model_path, num_labels=num_labels)
+        self.model = GPT2ForSequenceClassification.from_pretrained(
+            model_path, num_labels=num_labels)
 
         # replace layernorm by SignatureLayerNorm
         sub_gpt2 = self.model.transformer.h[10:]

@@ -1,5 +1,5 @@
 import torch.nn as nn
-from federatedml.nn.model_zoo.sign_block import SignatureConv, ConvBlock
+from fate_llm.model_zoo.sign_block import SignatureConv, ConvBlock
 
 
 class SignAlexNet(nn.Module):
@@ -55,5 +55,5 @@ class SignAlexNet(nn.Module):
         x = self.classifier(x)
         if self.training:
             return x
-        else: # Sofmax
+        else:  # Sofmax
             return nn.functional.softmax(x, dim=1)

@@ -32,8 +32,12 @@ class Bart(PELLM):
             self.check_config(pretrain_path=pretrained_path)
         if config is None and pretrained_path is None:
             config = BartConfig().to_dict()
-        super().__init__(config=config, pretrained_path=pretrained_path,
-                         peft_type=peft_type, peft_config=peft_config, **kwargs)
+        super().__init__(
+            config=config,
+            pretrained_path=pretrained_path,
+            peft_type=peft_type,
+            peft_config=peft_config,
+            **kwargs)
 
     def check_config(self, pretrain_path):
         config = AutoConfig.from_pretrained(pretrain_path)

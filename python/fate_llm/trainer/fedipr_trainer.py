@@ -9,8 +9,8 @@ from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
 from federatedml.nn.dataset.watermark import WaterMarkImageDataset, WaterMarkDataset
 from federatedml.util import LOGGER
-from federatedml.nn.model_zoo.sign_block import generate_signature, is_sign_block
-from federatedml.nn.model_zoo.sign_block import SignatureBlock
+from fate_llm.model_zoo.sign_block import generate_signature, is_sign_block
+from fate_llm.model_zoo.sign_block import SignatureBlock
 from sklearn.metrics import accuracy_score
 from federatedml.nn.dataset.base import Dataset
 from federatedml.util import consts
@@ -85,7 +85,8 @@ def _verify_sign_blocks(sign_blocks, keys, cuda=False, device=None):
             signature = to_cuda(signature, device=device)
         extract_bits = block.extract_sign(W)
         total_bit += len(extract_bits)
-        signature_correct_count += (extract_bits == signature).sum().detach().cpu().item()
+        signature_correct_count += (extract_bits ==
+                                    signature).sum().detach().cpu().item()
 
     sign_acc = signature_correct_count / total_bit
     return sign_acc
@@ -120,13 +121,29 @@ def verify_feature_based_signature(model, keys):
 
 class FedIPRTrainer(FedAVGTrainer):
 
-    def __init__(self, epochs=10, noraml_dataset_batch_size=32, watermark_dataset_batch_size=2,
-                 early_stop=None, tol=0.0001, secure_aggregate=True, weighted_aggregation=True,
-                 aggregate_every_n_epoch=None, cuda=None, pin_memory=True, shuffle=True,
-                 data_loader_worker=0, validation_freqs=None, checkpoint_save_freqs=None,
-                 task_type='auto', save_to_local_dir=False, collate_fn=None, collate_fn_params=None,
-                 alpha=0.01, verify_freqs=1, backdoor_verify_method: Literal['accuracy', 'loss'] = 'accuracy'
-                 ):
+    def __init__(self,
+                 epochs=10,
+                 noraml_dataset_batch_size=32,
+                 watermark_dataset_batch_size=2,
+                 early_stop=None,
+                 tol=0.0001,
+                 secure_aggregate=True,
+                 weighted_aggregation=True,
+                 aggregate_every_n_epoch=None,
+                 cuda=None,
+                 pin_memory=True,
+                 shuffle=True,
+                 data_loader_worker=0,
+                 validation_freqs=None,
+                 checkpoint_save_freqs=None,
+                 task_type='auto',
+                 save_to_local_dir=False,
+                 collate_fn=None,
+                 collate_fn_params=None,
+                 alpha=0.01,
+                 verify_freqs=1,
+                 backdoor_verify_method: Literal['accuracy',
+                                                 'loss'] = 'accuracy'):
 
         super().__init__(
             epochs,
@@ -161,8 +178,10 @@ class FedIPRTrainer(FedAVGTrainer):
         self._sign_bits = None
 
         assert self.alpha > 0, 'alpha must be greater than 0'
-        assert self.verify_freqs > 0 and isinstance(self.verify_freqs, int), 'verify_freqs must be greater than 0'
-        assert self.backdoor_verify_method in ['accuracy', 'loss'], 'backdoor_verify_method must be accuracy or loss'
+        assert self.verify_freqs > 0 and isinstance(
+            self.verify_freqs, int), 'verify_freqs must be greater than 0'
+        assert self.backdoor_verify_method in [
+            'accuracy', 'loss'], 'backdoor_verify_method must be accuracy or loss'
 
     def local_mode(self):
         self.fed_mode = False
@@ -199,20 +218,26 @@ class FedIPRTrainer(FedAVGTrainer):
         collate_fn = self._get_collate_fn(train_set)
 
         if isinstance(train_set, WaterMarkDataset):
-            LOGGER.info('detect watermark dataset, split watermark dataset and normal dataset')
+            LOGGER.info(
+                'detect watermark dataset, split watermark dataset and normal dataset')
             normal_train_set = train_set.get_normal_dataset()
             watermark_set = train_set.get_watermark_dataset()
             if normal_train_set is None:
-                raise ValueError('normal dataset must not be None in FedIPR algo')
-            train_dataloder = self._handle_dataset(normal_train_set, collate_fn)
+                raise ValueError(
+                    'normal dataset must not be None in FedIPR algo')
+            train_dataloder = self._handle_dataset(
+                normal_train_set, collate_fn)
 
             if watermark_set is not None:
-                watermark_dataloader = self._handle_dataset(watermark_set, collate_fn)
+                watermark_dataloader = self._handle_dataset(
+                    watermark_set, collate_fn)
             else:
                 watermark_dataloader = None
             self.normal_train_set = normal_train_set
             self.watermark_set = watermark_set
-            dataloaders = {'train': train_dataloder, 'watermark': watermark_dataloader}
+            dataloaders = {
+                'train': train_dataloder,
+                'watermark': watermark_dataloader}
             return dataloaders
         else:
             LOGGER.info('detect non-watermark dataset')
@@ -229,7 +254,11 @@ class FedIPRTrainer(FedAVGTrainer):
 
     def verify(self, sign_blocks: dict, keys: dict):
 
-        return _verify_sign_blocks(sign_blocks, keys, self.cuda is not None, self._get_device())
+        return _verify_sign_blocks(
+            sign_blocks,
+            keys,
+            self.cuda is not None,
+            self._get_device())
 
     def get_loss_from_pred(self, loss, pred, batch_label):
 
@@ -264,7 +293,13 @@ class FedIPRTrainer(FedAVGTrainer):
 
         return self._sign_blocks
 
-    def train(self, train_set: Dataset, validate_set: Dataset = None, optimizer=None, loss=None, extra_dict={}):
+    def train(
+            self,
+            train_set: Dataset,
+            validate_set: Dataset = None,
+            optimizer=None,
+            loss=None,
+            extra_dict={}):
 
         if 'keys' in extra_dict:
             self._sign_keys = extra_dict['keys']
@@ -275,11 +310,22 @@ class FedIPRTrainer(FedAVGTrainer):
                 self._client_num = len(self.party_id_list)
             self._sign_bits = compute_sign_bit(self.model, self._client_num)
 
-        LOGGER.info('client num {}, party id list {}'.format(self._client_num, self.party_id_list))
-        LOGGER.info('will assign {} bits for feature based watermark'.format(self._sign_bits))
+        LOGGER.info(
+            'client num {}, party id list {}'.format(
+                self._client_num,
+                self.party_id_list))
+        LOGGER.info(
+            'will assign {} bits for feature based watermark'.format(
+                self._sign_bits))
         return super().train(train_set, validate_set, optimizer, loss, extra_dict)
 
-    def train_an_epoch(self, epoch_idx, model, train_set, optimizer, loss_func):
+    def train_an_epoch(
+            self,
+            epoch_idx,
+            model,
+            train_set,
+            optimizer,
+            loss_func):
 
         epoch_loss = 0.0
         batch_idx = 0
@@ -322,7 +368,8 @@ class FedIPRTrainer(FedAVGTrainer):
                 if isinstance(wm_batch, list):
                     wm_batch_data, wm_batch_label = wm_batch
                     batch_data = torch.cat([batch_data, wm_batch_data], dim=0)
-                    batch_label = torch.cat([batch_label, wm_batch_label], dim=0)
+                    batch_label = torch.cat(
+                        [batch_label, wm_batch_label], dim=0)
                 else:
                     wm_batch_data = wm_batch
                     batch_data = torch.cat([batch_data, wm_batch_data], dim=0)
@@ -359,8 +406,9 @@ class FedIPRTrainer(FedAVGTrainer):
 
                 batch_loss.backward()
                 optimizer.step()
-                batch_loss_np = np.array(batch_loss.detach().tolist()) if self.cuda is None \
-                    else np.array(batch_loss.cpu().detach().tolist())
+                batch_loss_np = np.array(
+                    batch_loss.detach().tolist()) if self.cuda is None else np.array(
+                    batch_loss.cpu().detach().tolist())
 
                 if acc_num + self.batch_size > len(train_set):
                     batch_len = len(train_set) - acc_num
@@ -372,7 +420,8 @@ class FedIPRTrainer(FedAVGTrainer):
                 batch_loss = model.backward(batch_loss)
                 batch_loss_np = np.array(batch_loss.cpu().detach().tolist())
                 model.step()
-                batch_loss_np = self._sync_loss(batch_loss_np * self._get_batch_size(batch_data))
+                batch_loss_np = self._sync_loss(
+                    batch_loss_np * self._get_batch_size(batch_data))
                 if distributed_util.is_rank_0():
                     epoch_loss += batch_loss_np
 
@@ -395,16 +444,20 @@ class FedIPRTrainer(FedAVGTrainer):
                 pred = pred.detach().cpu()
                 label = label.detach().cpu()
                 if self.backdoor_verify_method == 'accuracy':
-                    if not isinstance(pred, torch.Tensor) and hasattr(pred, "logits"):
+                    if not isinstance(
+                            pred, torch.Tensor) and hasattr(
+                            pred, "logits"):
                         pred = pred.logits
                     pred = pred.numpy().reshape((len(label), -1))
                     label = label.numpy()
                     pred_label = np.argmax(pred, axis=1)
-                    metric = accuracy_score(pred_label.flatten(), label.flatten())
+                    metric = accuracy_score(
+                        pred_label.flatten(), label.flatten())
                 else:
                     metric = self.get_loss_from_pred(loss_func, pred, label)
 
-                LOGGER.info(f"epoch {epoch_idx} backdoor {self.backdoor_verify_method}: {metric}")
+                LOGGER.info(
+                    f"epoch {epoch_idx} backdoor {self.backdoor_verify_method}: {metric}")
 
         return epoch_loss
 
@@ -436,7 +489,9 @@ class FedIPRTrainer(FedAVGTrainer):
 
                 pred = model(batch_data)
 
-                if not isinstance(pred, torch.Tensor) and hasattr(pred, "logits"):
+                if not isinstance(
+                        pred, torch.Tensor) and hasattr(
+                        pred, "logits"):
                     pred = pred.logits
 
                 pred_result.append(pred)
@@ -454,7 +509,8 @@ class FedIPRTrainer(FedAVGTrainer):
     def predict(self, dataset: Dataset):
 
         if self.task_type in [consts.CAUSAL_LM, consts.SEQ_2_SEQ_LM]:
-            LOGGER.warning(f"Not support prediction of task_types={[consts.CAUSAL_LM, consts.SEQ_2_SEQ_LM]}")
+            LOGGER.warning(
+                f"Not support prediction of task_types={[consts.CAUSAL_LM, consts.SEQ_2_SEQ_LM]}")
             return
 
         if distributed_util.is_distributed() and not distributed_util.is_rank_0():
@@ -463,7 +519,8 @@ class FedIPRTrainer(FedAVGTrainer):
         if isinstance(dataset, WaterMarkDataset):
             normal_train_set = dataset.get_normal_dataset()
             if normal_train_set is None:
-                raise ValueError('normal train set is None in FedIPR algo predict function')
+                raise ValueError(
+                    'normal train set is None in FedIPR algo predict function')
         else:
             normal_train_set = normal_train_set
 
@@ -486,7 +543,14 @@ class FedIPRTrainer(FedAVGTrainer):
             extra_data={}):
 
         extra_data = {'keys': self._sign_keys, 'num_bits': self._sign_bits}
-        super().save(model, epoch_idx, optimizer, converge_status, loss_history, best_epoch, extra_data)
+        super().save(
+            model,
+            epoch_idx,
+            optimizer,
+            converge_status,
+            loss_history,
+            best_epoch,
+            extra_data)
 
     def local_save(self,
                    model=None,
@@ -498,4 +562,11 @@ class FedIPRTrainer(FedAVGTrainer):
                    extra_data={}):
 
         extra_data = {'keys': self._sign_keys, 'num_bits': self._sign_bits}
-        super().local_save(model, epoch_idx, optimizer, converge_status, loss_history, best_epoch, extra_data)
+        super().local_save(
+            model,
+            epoch_idx,
+            optimizer,
+            converge_status,
+            loss_history,
+            best_epoch,
+            extra_data)

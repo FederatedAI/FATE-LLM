@@ -12,17 +12,15 @@ class WaterMarkDataset(Dataset):
         super().__init__()
         self.normal_dataset = None
         self.watermark_dataset = None
-    
+
     def load(self, path):
         raise NotImplementedError()
 
     def get_normal_dataset(self):
         return self.normal_dataset
-    
+
     def get_watermark_dataset(self):
         return self.watermark_dataset
-
-    
 
 
 class WaterMarkImageDataset(WaterMarkDataset):
@@ -42,11 +40,16 @@ class WaterMarkImageDataset(WaterMarkDataset):
     watermark_folder_name: str, default is 'watermark', the folder name of watermark dataset
     """
 
-    def __init__(self, normal_folder_name='normal', watermark_folder_name='watermark',
-                 center_crop=False, center_crop_shape=None,
-                 generate_id_from_file_name=True, file_suffix='.jpg',
-                 float64=False, label_dtype='long'
-                 ):
+    def __init__(
+            self,
+            normal_folder_name='normal',
+            watermark_folder_name='watermark',
+            center_crop=False,
+            center_crop_shape=None,
+            generate_id_from_file_name=True,
+            file_suffix='.jpg',
+            float64=False,
+            label_dtype='long'):
 
         super(WaterMarkImageDataset, self).__init__()
         self.normal_folder_name = normal_folder_name
@@ -63,17 +66,18 @@ class WaterMarkImageDataset(WaterMarkDataset):
         self.label_type = label_dtype
 
     def __getitem__(self, item):
-        
+
         if item < 0:
             item = len(self) + item
         if item < 0:
             raise IndexError('index out of range')
-        
+
         if item < len(self.normal_dataset):
             return ('normal', self.normal_dataset[item])
         else:
-            return ('watermark', self.watermark_dataset[item - len(self.normal_dataset)])
-        
+            return ('watermark',
+                    self.watermark_dataset[item - len(self.normal_dataset)])
+
     def __len__(self):
         len_ = 0
         if self.normal_dataset is not None:
@@ -83,7 +87,7 @@ class WaterMarkImageDataset(WaterMarkDataset):
         return len_
 
     def load(self, file_path):
-        
+
         # normal dataset path
         normal_path = os.path.join(file_path, self.normal_folder_name)
         # watermark dataset path
@@ -102,7 +106,8 @@ class WaterMarkImageDataset(WaterMarkDataset):
             self.normal_dataset.load(normal_path)
         else:
             self.normal_dataset = None
-            LOGGER.info(f'normal dataset not found in {normal_path}, will not load normal dataset')
+            LOGGER.info(
+                f'normal dataset not found in {normal_path}, will not load normal dataset')
         # load watermark dataset
         self.watermark_dataset = ImageDataset(
             center_crop=self.center_crop,
@@ -116,14 +121,14 @@ class WaterMarkImageDataset(WaterMarkDataset):
             self.watermark_dataset.load(watermark_path)
         else:
             self.watermark_dataset = None
-            LOGGER.info(f'watermark dataset not found in {watermark_path}, will not load watermark dataset')
+            LOGGER.info(
+                f'watermark dataset not found in {watermark_path}, will not load watermark dataset')
 
     def get_normal_dataset(self):
         return self.normal_dataset
-    
+
     def get_watermark_dataset(self):
         return self.watermark_dataset
 
     def get_classes(self):
         return self.normal_dataset.get_classes()
-
