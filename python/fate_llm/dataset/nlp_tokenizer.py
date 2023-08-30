@@ -42,11 +42,16 @@ class TokenizerDataset(Dataset):
     return_input_ids bool, whether to return input_ids or not, if False, return word_idx['input_ids']
     """
 
-    def __init__(self, truncation=True, text_max_length=128,
-                 tokenizer_name_or_path="bert-base-uncased",
-                 return_label=True, padding=True, padding_side="right", pad_token=None,
-                 return_input_ids=True
-                 ):
+    def __init__(
+            self,
+            truncation=True,
+            text_max_length=128,
+            tokenizer_name_or_path="bert-base-uncased",
+            return_label=True,
+            padding=True,
+            padding_side="right",
+            pad_token=None,
+            return_input_ids=True):
 
         super(TokenizerDataset, self).__init__()
         self.text = None
@@ -59,7 +64,8 @@ class TokenizerDataset(Dataset):
         self.max_length = text_max_length
         self.with_label = return_label
         self.tokenizer_name_or_path = tokenizer_name_or_path
-        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name_or_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.tokenizer_name_or_path)
         self.tokenizer.padding_side = padding_side
         self.return_input_ids = return_input_ids
         if pad_token is not None:

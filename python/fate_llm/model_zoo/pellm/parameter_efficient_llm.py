@@ -78,9 +78,11 @@ class PELLM(torch.nn.Module):
     def init_base_lm(self, **kwargs):
         model_loader = self.model_loader if self.model_loader is not None else AutoModel
         if self.config is not None:
-            self._pe_lm = model_loader.from_pretrained(self.config_path, config=self.config, **kwargs)
+            self._pe_lm = model_loader.from_pretrained(
+                self.config_path, config=self.config, **kwargs)
         elif self.config_path is not None:
-            self._pe_lm = model_loader.from_pretrained(self.config_path, **kwargs)
+            self._pe_lm = model_loader.from_pretrained(
+                self.config_path, **kwargs)
         else:
             raise ValueError(
                 'config_path to pretrained model folder cannot be None')
@@ -116,13 +118,14 @@ class PELLM(torch.nn.Module):
 
     def save_pretrained(self, path):
         if not self.enable_save_pretrained:
-            raise ValueError("To save trainable parameters only, set enable_save_pretrained=True in your model")
+            raise ValueError(
+                "To save trainable parameters only, set enable_save_pretrained=True in your model")
 
         from pathlib import Path
 
         state_dict = {
-            k: p.to("cpu") for k, p in self._pe_lm.named_parameters() if p.requires_grad
-        }
+            k: p.to("cpu") for k,
+            p in self._pe_lm.named_parameters() if p.requires_grad}
         Path.mkdir(Path(path), exist_ok=True)
         torch.save(state_dict, Path(path).joinpath("adapter_model.bin"))
 
@@ -131,5 +134,3 @@ class AutoPELLM(PELLM):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-
-
