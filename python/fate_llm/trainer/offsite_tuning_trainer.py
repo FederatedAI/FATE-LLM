@@ -8,6 +8,7 @@ from federatedml.util import consts
 from federatedml.nn.backend.utils import deepspeed_util
 from federatedml.nn.backend.utils import distributed_util
 import torch.distributed as dist
+from federatedml.optim.convergence import converge_func_factory
 
 
 
@@ -155,7 +156,7 @@ class OffsiteTuningTrainer(FedAVGTrainer):
                     type(
                         unwrap_model)))
 
-        model: OffiteTuningMainModel = unwrap_model
+        model: OffsiteTuningMainModel = unwrap_model
         sub_model_state_dict = model.get_submodel_weights()
         self._send_submodel_weights(sub_model_state_dict, self.model_transvar.server_to_client.remote, suffix='start')
         # server_agg: SecureAggregatorServer = self.server_agg
