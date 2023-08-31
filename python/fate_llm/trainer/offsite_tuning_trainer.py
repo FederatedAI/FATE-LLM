@@ -8,6 +8,7 @@ from federatedml.util import consts
 from federatedml.nn.backend.utils import deepspeed_util
 from federatedml.nn.backend.utils import distributed_util
 import torch.distributed as dist
+from federatedml.optim.convergence import converge_func_factory
 
 
 
@@ -23,7 +24,7 @@ class OffsiteTuningTrainer(FedAVGTrainer):
 
     def __init__(self, epochs=10, batch_size=512,  # training parameter
                  early_stop=None, tol=0.0001,  # early stop parameters
-                 secure_aggregate=True, weighted_aggregation=True, aggregate_every_n_epoch=None,  # federation
+                 secure_aggregate=False, weighted_aggregation=True, aggregate_every_n_epoch=None,  # federation, offsite tuning need to aggregate large model, default is False
                  cuda=None,
                  pin_memory=True, shuffle=True, data_loader_worker=0,  # GPU & dataloader
                  validation_freqs=None,  # validation configuration
@@ -63,9 +64,9 @@ class OffsiteTuningTrainer(FedAVGTrainer):
         emulator = state_dict['emulator']
         adapter_top = state_dict['adapter_top']
         adapter_bottom = state_dict['adapter_bottom']
-        tb1 = session.parallelize([(key, value) for key, value in emulator.items()], include_key=True, partition=1)
-        tb2 = session.parallelize([(key, value) for key, value in adapter_top.items()], include_key=True, partition=1)
-        tb3 = session.parallelize([(key, value) for key, value in adapter_bottom.items()], include_key=True, partition=1)
+        tb1 = session.parallelize([(key, value) for key, value in emulator.items()], include_key=True, partition=4)
+        tb2 = session.parallelize([(key, value) for key, value in adapter_top.items()], include_key=True, partition=4)
+        tb3 = session.parallelize([(key, value) for key, value in adapter_bottom.items()], include_key=True, partition=4)
         state_dict.pop('emulator', None)
         state_dict.pop('adapter_top', None)
         state_dict.pop('adapter_bottom', None)
@@ -86,7 +87,6 @@ class OffsiteTuningTrainer(FedAVGTrainer):
 
     def _get_submodel_weights(self, get_func, suffix='start'):
         
-        client_agg: SecureAggregatorClient = self.client_agg
         tb1 = get_func(suffix='emulator_'+suffix)[0]
         tb2 = get_func(suffix='adapter_top_'+suffix)[0]
         tb3 = get_func(suffix='adapter_bottom_'+suffix)[0]
@@ -117,7 +117,6 @@ class OffsiteTuningTrainer(FedAVGTrainer):
 
             if (distributed_util.is_distributed() and distributed_util.is_rank_0()) or (not distributed_util.is_distributed()):
                 # receive parameters from model provider and load emulator, adapter
-                client_agg: SecureAggregatorClient = self.client_agg
                 ret = self._get_submodel_weights(self.model_transvar.server_to_client.get, suffix='start')
                 LOGGER.info('loaded weights keys are {}'.format(ret.keys()))
                 # client_agg: SecureAggregatorClient = self.client_agg
@@ -157,7 +156,7 @@ class OffsiteTuningTrainer(FedAVGTrainer):
                     type(
                         unwrap_model)))
 
-        model: OffiteTuningMainModel = unwrap_model
+        model: OffsiteTuningMainModel = unwrap_model
         sub_model_state_dict = model.get_submodel_weights()
         self._send_submodel_weights(sub_model_state_dict, self.model_transvar.server_to_client.remote, suffix='start')
         # server_agg: SecureAggregatorServer = self.server_agg
@@ -239,7 +238,9 @@ class OffsiteTuningTrainer(FedAVGTrainer):
                     self.secure_aggregate,
                     aggregate_weight=sample_num,
                     communicate_match_suffix=self.comm_suffix,
-                    clients=clients)
+                    clients=clients,
+                    lm_aggregate=True
+                    )
                 # init model transvar
                 from federatedml.framework.homo.blocks import CommunicatorTransVar
                 self.model_transvar = CommunicatorTransVar(clients=clients, prefix='model', disable_gc=True)
@@ -271,7 +272,9 @@ class OffsiteTuningTrainer(FedAVGTrainer):
         self.server_agg = SecureAggServer(
             self.secure_aggregate,
             communicate_match_suffix=self.comm_suffix,
-            clients=clients)
+            clients=clients,
+            lm_aggregate=True
+            )
         from federatedml.framework.homo.blocks import CommunicatorTransVar
         self.model_transvar = CommunicatorTransVar(clients=clients, prefix='model', disable_gc=True)
 
