@@ -1,11 +1,8 @@
 from fate_llm.model_zoo.offsite_tuning.offsite_tuning_model import OffsiteTuningSubModel, OffsiteTuningMainModel, get_dropout_emulator_and_adapters, split_numpy_array, recover_numpy_array
-from transformers import GPT2LMHeadModel, GPT2Config
-from torch import nn
-import torch
-import torch as t
+from transformers import LlamaConfig, LlamaForCausalLM
 
 
-class GPT2LMHeadMainModel(OffsiteTuningMainModel):
+class LlamaMainModel(OffsiteTuningMainModel):
 
     def __init__(
             self,
@@ -21,11 +18,11 @@ class GPT2LMHeadMainModel(OffsiteTuningMainModel):
             adapter_bottom_layer_num)
 
     def get_base_model(self):
-        return GPT2LMHeadModel.from_pretrained(self.model_name_or_path)
+        return LlamaForCausalLM.from_pretrained(self.model_name_or_path)
 
-    def get_model_transformer_blocks(self, model: GPT2LMHeadModel):
-        return model.transformer.h
-
+    def get_model_transformer_blocks(self, model: LlamaForCausalLM):
+        return model.model.layers
+    
     def forward(self, x):
         return self.model(**x)
 
@@ -33,50 +30,40 @@ class GPT2LMHeadMainModel(OffsiteTuningMainModel):
         # get parameter of additional parameter
         model = self.model
         param_dict = {
-            'wte': model.transformer.wte,
-            'wpe': model.transformer.wpe,
-            'last_ln_f': model.transformer.ln_f
+            'wte': model.model.embed_tokens,
+            'last_ln_f': model.model.norm
         }
 
         addition_weights = self.get_numpy_state_dict(param_dict)
 
         wte = addition_weights.pop('wte')
-        wte_dict = split_numpy_array(wte, 10, 'wte')
-        wpe = addition_weights.pop('wpe')
-        wpe_dict = split_numpy_array(wpe, 10, 'wpe')
+        wte_dict = split_numpy_array(wte, 25, 'wte')
         addition_weights.update(wte_dict)
-        addition_weights.update(wpe_dict)
         return addition_weights
 
     def load_additional_param_state_dict(self, submodel_weights: dict):
         # load additional weights:
         model = self.model
         param_dict = {
-            'wte': model.transformer.wte,
-            'wpe': model.transformer.wpe,
-            'last_ln_f': model.transformer.ln_f
+            'wte': model.model.embed_tokens,
+            'last_ln_f': model.model.norm
         }
 
         new_submodel_weight = {}
         new_submodel_weight['last_ln_f'] = submodel_weights['last_ln_f']
-        wte_dict, wpe_dict = {}, {}
+        wte_dict = {}
         for k, v in submodel_weights.items():
             if 'wte' in k:
                 wte_dict[k] = v
-            if 'wpe' in k:
-                wpe_dict[k] = v
         wte = recover_numpy_array(wte_dict, 'wte')
-        wpe = recover_numpy_array(wpe_dict, 'wpe')
         new_submodel_weight['wte'] = wte
-        new_submodel_weight['wpe'] = wpe
-
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
     def forward(self, x):
         return self.model(**x)
 
 
-class GPT2LMHeadSubModel(OffsiteTuningSubModel):
+class LlamaSubModel(OffsiteTuningSubModel):
 
     def __init__(
             self,
@@ -101,13 +88,13 @@ class GPT2LMHeadSubModel(OffsiteTuningSubModel):
     def get_base_model(self):
         total_layer_num = self.emulator_layer_num + \
             self.adapter_top_layer_num + self.adapter_bottom_layer_num
-        config = GPT2Config.from_pretrained(self.model_name_or_path)
-        config.num_hidden_layers = total_layer_num
+        config = LlamaConfig.from_pretrained(self.model_name_or_path)
+        config.num_layers = total_layer_num
         # initialize a model without pretrained weights
-        return GPT2LMHeadModel(config)
+        return LlamaForCausalLM(config)
 
-    def get_model_transformer_blocks(self, model: GPT2LMHeadModel):
-        return model.transformer.h
+    def get_model_transformer_blocks(self, model: LlamaForCausalLM):
+        return model.model.layers
 
     def forward(self, x):
         return self.model(**x)
@@ -116,43 +103,33 @@ class GPT2LMHeadSubModel(OffsiteTuningSubModel):
         # get parameter of additional parameter
         model = self.model
         param_dict = {
-            'wte': model.transformer.wte,
-            'wpe': model.transformer.wpe,
-            'last_ln_f': model.transformer.ln_f
+            'wte': model.model.embed_tokens,
+            'last_ln_f': model.model.norm
         }
 
         addition_weights = self.get_numpy_state_dict(param_dict)
 
         wte = addition_weights.pop('wte')
-        wte_dict = split_numpy_array(wte, 10, 'wte')
-        wpe = addition_weights.pop('wpe')
-        wpe_dict = split_numpy_array(wpe, 10, 'wpe')
+        wte_dict = split_numpy_array(wte, 25, 'wte')
         addition_weights.update(wte_dict)
-        addition_weights.update(wpe_dict)
         return addition_weights
 
     def load_additional_param_state_dict(self, submodel_weights: dict):
         # load additional weights:
         model = self.model
         param_dict = {
-            'wte': model.transformer.wte,
-            'wpe': model.transformer.wpe,
-            'last_ln_f': model.transformer.ln_f
+            'wte': model.model.embed_tokens,
+            'last_ln_f': model.model.norm
         }
 
         new_submodel_weight = {}
         new_submodel_weight['last_ln_f'] = submodel_weights['last_ln_f']
-        wte_dict, wpe_dict = {}, {}
+        wte_dict = {}
         for k, v in submodel_weights.items():
             if 'wte' in k:
                 wte_dict[k] = v
-            if 'wpe' in k:
-                wpe_dict[k] = v
         wte = recover_numpy_array(wte_dict, 'wte')
-        wpe = recover_numpy_array(wpe_dict, 'wpe')
         new_submodel_weight['wte'] = wte
-        new_submodel_weight['wpe'] = wpe
-
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
     def forward(self, x):
