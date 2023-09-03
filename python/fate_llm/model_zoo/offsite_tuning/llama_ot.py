@@ -89,7 +89,7 @@ class LlamaSubModel(OffsiteTuningSubModel):
         total_layer_num = self.emulator_layer_num + \
             self.adapter_top_layer_num + self.adapter_bottom_layer_num
         config = LlamaConfig.from_pretrained(self.model_name_or_path)
-        config.num_layers = total_layer_num
+        config.num_hidden_layers = total_layer_num
         # initialize a model without pretrained weights
         return LlamaForCausalLM(config)
 
