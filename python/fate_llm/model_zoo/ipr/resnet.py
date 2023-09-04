@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from fate_llm.model_zoo.sign_block import ConvBlock, SignatureConv
+from fate_llm.model_zoo.ipr.sign_block import ConvBlock, SignatureConv
 
 
 # The layer define for ResNet18, add signature to last layer
