@@ -7,10 +7,10 @@ from federatedml.nn.homo.trainer.fedavg_trainer import FedAVGTrainer
 from federatedml.nn.backend.utils import distributed_util
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
-from federatedml.nn.dataset.watermark import WaterMarkImageDataset, WaterMarkDataset
+from fate_llm.dataset.watermark import WaterMarkImageDataset, WaterMarkDataset
 from federatedml.util import LOGGER
-from fate_llm.model_zoo.sign_block import generate_signature, is_sign_block
-from fate_llm.model_zoo.sign_block import SignatureBlock
+from fate_llm.model_zoo.ipr.sign_block import generate_signature, is_sign_block
+from fate_llm.model_zoo.ipr.sign_block import SignatureBlock
 from sklearn.metrics import accuracy_score
 from federatedml.nn.dataset.base import Dataset
 from federatedml.util import consts
@@ -352,6 +352,9 @@ class FedIPRTrainer(FedAVGTrainer):
             for watermark_batch in watermark_dl:
                 watermark_collect.append(watermark_batch)
 
+        total_batch_len = len(dl)
+        LOGGER.info('total batch len is {}'.format(total_batch_len))
+
         for _batch_iter in trainset_iterator:
 
             _batch_iter = self._decode(_batch_iter)
@@ -428,8 +431,12 @@ class FedIPRTrainer(FedAVGTrainer):
             batch_idx += 1
 
             if self.fed_mode:
-                LOGGER.debug(
-                    'epoch {} batch {} finished'.format(epoch_idx, batch_idx))
+                if total_batch_len > 100:
+                    if batch_idx % (total_batch_len // 100) == 0:
+                        percentage = (batch_idx / total_batch_len) * 100
+                        LOGGER.debug(f"Training progress of epoch {epoch_idx}: {percentage:.1f}%")
+                else:
+                    LOGGER.debug("Training epoch {}:batch {}".format(epoch_idx, batch_idx))
 
         epoch_loss = epoch_loss / len(train_set)
 

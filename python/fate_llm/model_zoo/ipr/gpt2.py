@@ -1,6 +1,6 @@
 from torch.nn import Module
 from transformers import GPT2ForTokenClassification, GPT2ForSequenceClassification
-from fate_llm.model_zoo.sign_block import recursive_replace_layernorm
+from fate_llm.model_zoo.ipr.sign_block import recursive_replace_layernorm
 
 
 class SignGPT2ForTokenClassification(Module):
