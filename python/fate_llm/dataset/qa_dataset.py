@@ -58,11 +58,12 @@ task_dict = {
     "openbookqa": OpenBookQA()
 }
 
+
 def tokenize_qa_dataset(dataset_name, tokenizer, save_path, seq_max_len=1000):
 
     max_len = seq_max_len
     assert dataset_name in ['piqa', 'sciq', 'openbookqa'], "dataset name must be one of ['piqa', 'sciq', 'openbookqa']"
-    raw_datasets = load_from_disk(dataset_name) 
+    raw_datasets = load_dataset(dataset_name) 
     task = task_dict[dataset_name]
 
     column_names = raw_datasets["train"].column_names
