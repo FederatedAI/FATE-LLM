@@ -28,7 +28,8 @@ class GLMTokenizerDataset(Dataset):
                  trust_remote_code=True,
                  prompt_template=None,
                  prompt_column="content",
-                 response_column="summary"
+                 response_column="summary",
+                 version=1
                  ):
 
         super(GLMTokenizerDataset, self).__init__()
@@ -43,6 +44,8 @@ class GLMTokenizerDataset(Dataset):
         self.tokenizer.padding_side = padding_side
         if pad_token is not None:
             self.tokenizer.add_special_tokens({'pad_token': pad_token})
+
+        self._version = version
 
         self.prompt_template = prompt_template if prompt_template else PROMPT_TEMPLATE
         self.prompt_column = prompt_column
@@ -69,7 +72,11 @@ class GLMTokenizerDataset(Dataset):
         input_ids = self.tokenizer.build_inputs_with_special_tokens(
             prompt_ids, target_ids)
 
-        seq_length = input_ids.index(self.tokenizer.bos_token_id)
+        if self._version == 1:
+            seq_length = input_ids.index(self.tokenizer.bos_token_id)
+        else:
+            seq_length = len(prompt_ids)
+
         labels = [-100] * seq_length + input_ids[seq_length:]
 
         return {
