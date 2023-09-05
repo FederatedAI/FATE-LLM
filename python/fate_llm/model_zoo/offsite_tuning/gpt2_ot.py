@@ -109,9 +109,6 @@ class GPT2LMHeadSubModel(OffsiteTuningSubModel):
     def get_model_transformer_blocks(self, model: GPT2LMHeadModel):
         return model.transformer.h
 
-    def forward(self, x):
-        return self.model(**x)
-
     def get_additional_param_state_dict(self):
         # get parameter of additional parameter
         model = self.model
