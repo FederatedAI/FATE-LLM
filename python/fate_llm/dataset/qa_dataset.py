@@ -5,6 +5,10 @@ import os
 from federatedml.nn.dataset.base import Dataset
 
 
+"""
+These Data pre-processing codes are from https://github.com/mit-han-lab/offsite-tuning
+"""
+
 class PIQA:
     def __init__(self):
         self._template = "Question: {}\nAnswer:"

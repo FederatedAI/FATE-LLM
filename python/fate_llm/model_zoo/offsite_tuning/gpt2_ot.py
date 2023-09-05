@@ -72,10 +72,6 @@ class GPT2LMHeadMainModel(OffsiteTuningMainModel):
 
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
-    def forward(self, x):
-        return self.model(**x)
-
-
 class GPT2LMHeadSubModel(OffsiteTuningSubModel):
 
     def __init__(
