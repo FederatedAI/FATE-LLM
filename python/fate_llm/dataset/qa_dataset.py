@@ -142,7 +142,7 @@ def tokenize_qa_dataset(dataset_name, tokenizer, save_path, seq_max_len=1000):
             load_from_cache_file=True,
             desc=f"Padding dataset to max length {max_length}",
         )
-    assert os.path.exists(save_path), "save_path must be a valid path"
+
     tokenized_datasets.save_to_disk(save_path)
     return tokenized_datasets
 
