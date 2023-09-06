@@ -287,8 +287,7 @@ class OffsiteTuningTrainer(FedAVGTrainer):
         self.server_agg = SecureAggServer(
             self.secure_aggregate,
             communicate_match_suffix=self.comm_suffix,
-            clients=clients,
-            lm_aggregate=True
+            clients=clients
             )
         from federatedml.framework.homo.blocks import CommunicatorTransVar
         self.model_transvar = CommunicatorTransVar(clients=clients, prefix='model', disable_gc=True)
