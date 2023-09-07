@@ -80,9 +80,9 @@ def recover_numpy_array(slices_dict, suffix=""):
 class OffsiteTuningBaseModel(t.nn.Module):
 
     def __init__(self, emulator_layer_num: int, adapter_top_layer_num: int = 2,
-                 adapter_bottom_layer_num: int = 2, fp16_mix_precision=False):
+                 adapter_bottom_layer_num: int = 2, get_state_dict_in_float64=False):
         super().__init__()
-        self.fp16_mix_precision = fp16_mix_precision
+        self.get_state_dict_in_float64 = get_state_dict_in_float64
         self.model = self.get_base_model()
         self.initialize_model()
         self.emulator, self.adapter_bottom, self.adapter_top = get_dropout_emulator_and_adapters(
@@ -135,20 +135,26 @@ class OffsiteTuningBaseModel(t.nn.Module):
         weight_dict = {}
         for k, v in module_dict.items():
             weight_dict[k] = {
-                k: v.detach().cpu().numpy() for k,
+                k: self._to_numpy(v) for k,
                 v in v.state_dict().items()}
         return weight_dict
+    
+    def _to_numpy(self, v):
+        if self.get_state_dict_in_float64:
+            return np.array(v.detach().cpu().tolist())
+        else:
+            return v.detach().cpu().numpy()
 
     def get_submodel_weights(self) -> dict:
         submodel_weights = {
             "emulator": {
-                k: v.detach().cpu().numpy() for k,
+                k: self._to_numpy(v) for k,
                 v in self.get_emulator().state_dict().items()},
             "adapter_top": {
-                k: v.detach().cpu().numpy() for k,
+                k: self._to_numpy(v) for k,
                 v in self.get_adapter_top().state_dict().items()},
             "adapter_bottom": {
-                k: v.detach().cpu().numpy() for k,
+                k: self._to_numpy(v) for k,
                 v in self.get_adapter_bottom().state_dict().items()}}
         addition_weights = self.get_additional_param_state_dict()
         submodel_weights.update(addition_weights)

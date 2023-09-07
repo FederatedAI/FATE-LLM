@@ -24,13 +24,17 @@ class LlamaMainModel(OffsiteTuningMainModel):
             model_name_or_path,
             emulator_layer_num: int,
             adapter_top_layer_num: int = 2,
-            adapter_bottom_layer_num: int = 2):
+            adapter_bottom_layer_num: int = 2,
+            get_state_dict_in_float64=False
+            ):
 
         self.model_name_or_path = model_name_or_path
         super().__init__(
             emulator_layer_num,
             adapter_top_layer_num,
-            adapter_bottom_layer_num)
+            adapter_bottom_layer_num,
+            get_state_dict_in_float64=get_state_dict_in_float64
+            )
 
     def get_base_model(self):
         return LlamaForCausalLM.from_pretrained(self.model_name_or_path)
@@ -86,7 +90,7 @@ class LlamaSubModel(OffsiteTuningSubModel):
             emulator_layer_num: int,
             adapter_top_layer_num: int = 2,
             adapter_bottom_layer_num: int = 2,
-            fp16_mix_precision=False,
+            get_state_dict_in_float64=False,
             partial_weight_decay=None):
 
         self.model_name_or_path = model_name_or_path
@@ -97,7 +101,7 @@ class LlamaSubModel(OffsiteTuningSubModel):
             emulator_layer_num,
             adapter_top_layer_num,
             adapter_bottom_layer_num,
-            fp16_mix_precision)
+            get_state_dict_in_float64=get_state_dict_in_float64)
         self.partial_weight_decay = partial_weight_decay
 
     def get_base_model(self):
