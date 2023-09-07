@@ -119,6 +119,16 @@ class OffsiteTuningBaseModel(t.nn.Module):
         # load additional weights:
         pass
 
+    def _get_numpy_arr(self, v):
+        if v.dtype == t.bfloat16:
+            # float 32
+            v = v.detach().cpu().float().cpu().numpy()
+        else:
+            v = v.detach().cpu().numpy()
+
+        return v
+
+
     def load_numpy_state_dict(self, module_dict, state_dict):
         param_dict = module_dict
 
@@ -135,20 +145,20 @@ class OffsiteTuningBaseModel(t.nn.Module):
         weight_dict = {}
         for k, v in module_dict.items():
             weight_dict[k] = {
-                k: v.detach().cpu().numpy() for k,
+                k: self._get_numpy_arr(v) for k,
                 v in v.state_dict().items()}
         return weight_dict
 
     def get_submodel_weights(self) -> dict:
         submodel_weights = {
             "emulator": {
-                k: v.detach().cpu().numpy() for k,
+                k: self._get_numpy_arr(v) for k,
                 v in self.get_emulator().state_dict().items()},
             "adapter_top": {
-                k: v.detach().cpu().numpy() for k,
+                k: self._get_numpy_arr(v) for k,
                 v in self.get_adapter_top().state_dict().items()},
             "adapter_bottom": {
-                k: v.detach().cpu().numpy() for k,
+                k: self._get_numpy_arr(v) for k,
                 v in self.get_adapter_bottom().state_dict().items()}}
         addition_weights = self.get_additional_param_state_dict()
         submodel_weights.update(addition_weights)
