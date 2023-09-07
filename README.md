@@ -17,12 +17,14 @@ FATE-LLM is a framework to support federated learning for large language models(
 
 ### Standalone deployment
 Please refer to [FATE-Standalone deployment](https://github.com/FederatedAI/FATE#standalone-deployment).  
-Deploy FATE-Standalone version with 1.11.2 <= version < 2.0, then copy directory `python/fate_llm` to `{fate_install}/fate/python/fate_llm`
+Deploy FATE-Standalone version with 1.11.3 <= version < 2.0, then copy directory `python/fate_llm` to `{fate_install}/fate/python/fate_llm`
 
 ### Cluster deployment
 Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Download#llm%E9%83%A8%E7%BD%B2%E5%8C%85) to deploy,  refer to [FATE-Cluster deployment](https://github.com/FederatedAI/FATE#cluster-deployment) for more deployment details.
 
 ## Quick Start
+- [Offsite-tuning Tutorial: Model Definition and Job Submission](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
+- [FedIPR Tutorial: Add Watermarks to Your Model](./doc/tutorial/fed_ipr/FedIPR-tutorial.ipynb)
 - [Federated ChatGLM-6B Training](./doc/tutorial/ChatGLM-6B_ds.ipynb)
 - [GPT-2 Training](./doc/tutorial/GPT2-example.ipynb)
 - [Builtin Models In PELLM](./doc/tutorial/builtin_models.md)
