@@ -122,7 +122,7 @@ class OffsiteTuningBaseModel(t.nn.Module):
     def _get_numpy_arr(self, v):
         if v.dtype == t.bfloat16:
             # float 32
-            v = v.detach().cpu().float().cpu().numpy()
+            v = v.detach().cpu().float().numpy()
         else:
             v = v.detach().cpu().numpy()
 
