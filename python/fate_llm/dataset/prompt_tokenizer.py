@@ -14,14 +14,14 @@
 #  limitations under the License.
 #
 import pandas as pd
-from transformers import LlamaTokenizer
+from transformers import AutoTokenizer
 from federatedml.nn.dataset.base import Dataset
 
 
 PROMPT_TEMPLATE = "{prompt}"
 
 
-class LLAMATokenizerDataset(Dataset):
+class PromptTokenizerDataset(Dataset):
     def __init__(self, text_max_length=256,
                  tokenizer_name_or_path=None,
                  padding=False, padding_side='left',
@@ -35,16 +35,20 @@ class LLAMATokenizerDataset(Dataset):
                  response_column="summary",
                  ):
 
-        super(LLAMATokenizerDataset, self).__init__()
+        super(PromptTokenizerDataset, self).__init__()
         self.tokenizer = None
         self.padding = padding
         self.add_special_tokens = add_special_tokens
         self.max_length = text_max_length
         self.tokenizer_name_or_path = tokenizer_name_or_path
-        self.tokenizer = LlamaTokenizer.from_pretrained(self.tokenizer_name_or_path, add_eos_token=add_eos_token)
-        self.tokenizer.pad_token_id = pad_token_id
-        self.tokenizer.bos_token_id = bos_token_id
-        self.tokenizer.eos_token_id = eos_token_id
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.tokenizer_name_or_path, add_eos_token=add_eos_token)
+        if pad_token_id is not None:
+            self.tokenizer.pad_token_id = pad_token_id
+        if bos_token_id is not None:
+            self.tokenizer.bos_token_id = bos_token_id
+        if eos_token_id is not None:
+            self.tokenizer.eos_token_id = eos_token_id
         self.tokenizer.padding_side = padding_side
 
         self.prompt_template = prompt_template if prompt_template else PROMPT_TEMPLATE
@@ -61,19 +65,22 @@ class LLAMATokenizerDataset(Dataset):
         _response = line[self.response_column]
 
         prompt = self.prompt_template.format_map(dict(prompt=_prompt))
-        prompt_ids = self.tokenizer.encode(prompt,
-                                           add_special_tokens=self.add_special_tokens,
-                                           padding=self.padding)
-        target_ids = self.tokenizer.encode(_response,
-                                           add_special_tokens=self.add_special_tokens,
-                                           padding=self.padding)
+        prompt_ids = self.tokenizer.encode(
+            prompt,
+            add_special_tokens=self.add_special_tokens,
+            padding=self.padding)
+        target_ids = self.tokenizer.encode(
+            _response,
+            add_special_tokens=self.add_special_tokens,
+            padding=self.padding)
 
         if len(prompt_ids) > self.max_length - 2:
             prompt_ids = prompt_ids[: self.max_length - 2]
         if len(target_ids) > self.max_length - 2:
             target_ids = target_ids[: self.max_length - 2]
 
-        input_ids = self.tokenizer.build_inputs_with_special_tokens(prompt_ids, target_ids)
+        input_ids = self.tokenizer.build_inputs_with_special_tokens(
+            prompt_ids, target_ids)
 
         seq_length = len(prompt_ids) + 2
         labels = [-100] * seq_length + input_ids[seq_length:]

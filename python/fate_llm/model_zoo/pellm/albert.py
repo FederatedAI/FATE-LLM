@@ -34,8 +34,12 @@ class Albert(PELLM):
             self.check_config(pretain_path=pretrained_path)
         if config is None and pretrained_path is None:
             config = AlbertConfig().to_dict()  # use default model setting
-        super().__init__(config=config, pretrained_path=pretrained_path,
-                         peft_type=peft_type, peft_config=peft_config, **kwargs)
+        super().__init__(
+            config=config,
+            pretrained_path=pretrained_path,
+            peft_type=peft_type,
+            peft_config=peft_config,
+            **kwargs)
 
     def check_config(self, pretain_path):
         config = AutoConfig.from_pretrained(pretain_path)

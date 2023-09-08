@@ -37,12 +37,16 @@ class ChatGLMForConditionalGeneration(PELLM):
                          peft_config=peft_config)
 
     def init_config(self):
-        self.config = AutoConfig.from_pretrained(self.config_path, trust_remote_code=True)
+        self.config = AutoConfig.from_pretrained(
+            self.config_path, trust_remote_code=True)
         self.config.pre_seq_len = self.pre_seq_len
         self.config.prefix_projection = self.prefix_projection
 
     def init_base_lm(self):
-        super(ChatGLMForConditionalGeneration, self).init_base_lm(trust_remote_code=True)
+        super(
+            ChatGLMForConditionalGeneration,
+            self).init_base_lm(
+            trust_remote_code=True)
         if self.fp16:
             self._pe_lm.half()
 

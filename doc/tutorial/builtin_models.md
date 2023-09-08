@@ -7,7 +7,10 @@ After reading the training tutorial above, it's easy to use other models listing
 
 | Model          | ModuleName        | ClassName                         | DataSetName      | 
 | -------------- | ----------------- | --------------------------------- | ---------------- |
-| LLaMA-7B       | pellm.llama       | LLAMAForCausalLM                  | llama_tokenizer  |                              
+| Bloom-7B1      | pellm.bloom       | BloomForCausalLM                  | prompt_tokenizer  |                              
+| LLaMA-2-7B     | pellm.llama       | LLAMAForCausalLM                  | prompt_tokenizer  |                              
+| LLaMA-7B       | pellm.llama       | LLAMAForCausalLM                  | prompt_tokenizer  |                              
+| ChatGLM2-6B    | pellm.chatglm     | ChatGLMForConditionalGeneration   | glm_tokenizer    |                              
 | ChatGLM-6B     | pellm.chatglm     | ChatGLMForConditionalGeneration   | glm_tokenizer    |                              
 | GPT-2          | pellm.gpt2        | GPT2                              | nlp_tokenizer    |                              
 | ALBERT         | pellm.albert      | Albert                            | nlp_tokenizer    |                              

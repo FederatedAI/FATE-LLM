@@ -13,35 +13,24 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-from transformers import DebertaConfig, AutoConfig
-from transformers import DebertaForSequenceClassification
+from transformers import BloomConfig
+from transformers import BloomForCausalLM
 from fate_llm.model_zoo.pellm.parameter_efficient_llm import PELLM
 
 
-class Deberta(PELLM):
+class BloomForCausalLM(PELLM):
 
-    config_class = DebertaConfig
-    model_loader = DebertaForSequenceClassification
+    config_class = BloomConfig
+    model_loader = BloomForCausalLM
 
     def __init__(self, config: dict = None,
                  pretrained_path: str = None,
                  peft_type: str = None,
                  peft_config: dict = None,
-                 **kwargs) -> None:
+                 **kwargs
+                 ) -> None:
 
-        if pretrained_path is not None:
-            self.check_config(pretrain_path=pretrained_path)
         if config is None and pretrained_path is None:
-            config = DebertaConfig().to_dict()
-        super().__init__(
-            config=config,
-            pretrained_path=pretrained_path,
-            peft_type=peft_type,
-            peft_config=peft_config,
-            **kwargs)
-
-    def check_config(self, pretrain_path):
-        config = AutoConfig.from_pretrained(pretrain_path)
-        assert isinstance(
-            config, DebertaConfig), 'The config of pretrained model must be DebertaConfig, but got {}'.format(
-            type(config))
+            config = BloomConfig().to_dict()  # use default model setting
+        super().__init__(config=config, pretrained_path=pretrained_path,
+                         peft_type=peft_type, peft_config=peft_config, **kwargs)
