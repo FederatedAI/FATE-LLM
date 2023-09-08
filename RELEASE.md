@@ -1,4 +1,4 @@
-## Release 1.2.0
+## Release 1.3.0
 ### Major Features and Improvements
 * FTL-LLM（Fedrated Learning + Transfer Learning + LLM）
   * Standard Offsite-Tuning and Extended Offsite-Tuning（Federated Offsite-Tuning+）now supported
