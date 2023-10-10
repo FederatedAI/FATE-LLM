@@ -23,7 +23,7 @@ FATE-LLM v1.3 builds on v1.2 and offers the ability to easily configure multi-ma
 
 ## Offsite-tuning with Federated Learning
 
-In addition to supporting standard two-party (model owner and data provider) offsite-tuning, FATE also supports offsite-tuning with multiple data providers simultaneously. Adapters can be fine-tuned locally and then aggregated with those from other data providers. Ultimately, large models can be enhanced through the aggregation of adapters from multiple parties. This approach can be used to address issues related to the uneven distribution of computational power and data.
+In addition to supporting standard two-party (model owner and data provider) offsite-tuning, FATE also supports offsite-tuning with multiple data providers simultaneously. Adapters can be fine-tuned locally and then aggregated with those from other data providers. Ultimately, large models can be enhanced through the secure aggregation of adapters from multiple parties. This approach can be used to address issues related to the uneven distribution of computational power and data.
 As shown in the diagram below:
 
 
