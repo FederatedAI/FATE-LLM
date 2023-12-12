@@ -25,6 +25,6 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 ## Quick Start
 - [Offsite-tuning Tutorial: Model Definition and Job Submission](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
 - [FedIPR Tutorial: Add Watermarks to Your Model](./doc/tutorial/fed_ipr/FedIPR-tutorial.ipynb)
-- [Federated ChatGLM-6B Training](./doc/tutorial/ChatGLM-6B_ds.ipynb)
-- [GPT-2 Training](./doc/tutorial/GPT2-example.ipynb)
+- [Federated ChatGLM-6B Training](./doc/tutorial/parameter_efficient_llm/ChatGLM-6B_ds.ipynb)
+- [GPT-2 Training](./doc/tutorial/parameter_efficient_llm/GPT2-example.ipynb)
 - [Builtin Models In PELLM](./doc/tutorial/builtin_models.md)
