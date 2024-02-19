@@ -13,18 +13,23 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import copy
 import pandas as pd
-from transformers import AutoTokenizer
-from federatedml.nn.dataset.base import Dataset
+from fate.ml.nn.dataset.base import Dataset
+from .tokenizers import get_prompt_tokenizer
 
 
 PROMPT_TEMPLATE = "{prompt}"
 
 
-class PromptTokenizerDataset(Dataset):
-    def __init__(self, text_max_length=256,
+class PromptDataset(Dataset):
+    def __init__(self,
+                 text_max_length=256,
                  tokenizer_name_or_path=None,
-                 padding=False, padding_side='left',
+                 trust_remote_code=False,
+                 padding=False,
+                 padding_side='left',
+                 pad_token=None,
                  pad_token_id=0,
                  bos_token_id=1,
                  eos_token_id=2,
@@ -35,21 +40,23 @@ class PromptTokenizerDataset(Dataset):
                  response_column="summary",
                  ):
 
-        super(PromptTokenizerDataset, self).__init__()
+        super(PromptDataset, self).__init__()
         self.tokenizer = None
+        self.tokenizer_name_or_path = tokenizer_name_or_path
         self.padding = padding
         self.add_special_tokens = add_special_tokens
         self.max_length = text_max_length
-        self.tokenizer_name_or_path = tokenizer_name_or_path
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.tokenizer_name_or_path, add_eos_token=add_eos_token)
-        if pad_token_id is not None:
-            self.tokenizer.pad_token_id = pad_token_id
-        if bos_token_id is not None:
-            self.tokenizer.bos_token_id = bos_token_id
-        if eos_token_id is not None:
-            self.tokenizer.eos_token_id = eos_token_id
-        self.tokenizer.padding_side = padding_side
+
+        self.tokenizer = get_prompt_tokenizer(
+            tokenizer_name_or_path=tokenizer_name_or_path,
+            trust_remote_code=trust_remote_code,
+            pad_token=pad_token,
+            pad_token_id=pad_token_id,
+            bos_token_id=bos_token_id,
+            eos_token_id=eos_token_id,
+            padding_side=padding_side,
+            add_eos_token=add_eos_token,
+        )
 
         self.prompt_template = prompt_template if prompt_template else PROMPT_TEMPLATE
         self.prompt_column = prompt_column
@@ -74,15 +81,30 @@ class PromptTokenizerDataset(Dataset):
             add_special_tokens=self.add_special_tokens,
             padding=self.padding)
 
-        if len(prompt_ids) > self.max_length - 2:
-            prompt_ids = prompt_ids[: self.max_length - 2]
-        if len(target_ids) > self.max_length - 2:
-            target_ids = target_ids[: self.max_length - 2]
+        if "chatglm" in self.tokenizer_name_or_path.lower():
+            if len(prompt_ids) > self.max_length - 1:
+                prompt_ids = prompt_ids[: self.max_length - 1]
+            if len(target_ids) > self.max_length - 2:
+                target_ids = target_ids[: self.max_length - 2]
 
-        input_ids = self.tokenizer.build_inputs_with_special_tokens(
-            prompt_ids, target_ids)
+            input_ids = self.tokenizer.build_inputs_with_special_tokens(
+                prompt_ids, target_ids)
 
-        seq_length = len(prompt_ids) + 2
+            if "chatglm2" in self.tokenizer_name_or_path:
+                seq_length = input_ids.index(self.tokenizer.bos_token_id)
+            else:
+                seq_length = len(prompt_ids)
+        else:
+            if len(prompt_ids) > self.max_length - 2:
+                prompt_ids = prompt_ids[: self.max_length - 2]
+            if len(target_ids) > self.max_length - 1:
+                target_ids = target_ids[: self.max_length - 1]
+
+            input_ids = self.tokenizer.build_inputs_with_special_tokens(
+                prompt_ids, target_ids)
+
+            seq_length = len(prompt_ids) + 2
+
         labels = [-100] * seq_length + input_ids[seq_length:]
 
         return {
@@ -94,7 +116,7 @@ class PromptTokenizerDataset(Dataset):
         return self.tokenizer.vocab_size
 
     def __getitem__(self, item):
-        return self._data[item]
+        return copy.deepcopy(self._data[item])
 
     def __len__(self):
         return len(self._data)
