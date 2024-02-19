@@ -19,7 +19,11 @@ from peft import PeftModel
 from transformers import AutoConfig
 from transformers import AutoModel
 from transformers.configuration_utils import PretrainedConfig
-from federatedml.util import LOGGER
+import logging
+import yaml
+
+
+logger = logging.getLogger(__name__)
 
 
 AVAILABLE_PEFT_CONFIG = list(
@@ -32,10 +36,10 @@ AVAILABLE_PEFT_CONFIG = list(
 class PELLM(torch.nn.Module):
 
     config_class: PretrainedConfig = None
-    enable_save_pretrained: bool = True
     model_loader = None
 
-    def __init__(self, config: dict = None,
+    def __init__(self,
+                 config: dict = None,
                  pretrained_path: str = None,
                  peft_type: str = None,
                  peft_config: dict = None,
@@ -88,46 +92,33 @@ class PELLM(torch.nn.Module):
                 'config_path to pretrained model folder cannot be None')
 
     def add_peft(self):
-        assert self.peft_type in AVAILABLE_PEFT_CONFIG, 'peft name {} not in availabe config {}'.format(
+        assert self.peft_type in AVAILABLE_PEFT_CONFIG, 'peft name {} not in available config {}'.format(
             self.peft_type, AVAILABLE_PEFT_CONFIG)
 
         if self.peft_config is None:
             peft_config = getattr(peft, self.peft_type)()
-        else:
+        elif isinstance(self.peft_config, dict):
             peft_config = getattr(peft, self.peft_type)(**self.peft_config)
+        elif isinstance(self.peft_config, str):
+            peft_config = yaml.safe_load(self.peft_config)
+        else:
+            raise ValueError(f"Can not parse peft_config of {type(self.peft_config)}")
 
         self._pe_lm = peft.get_peft_model(self._pe_lm, peft_config)
 
     def model_summary(self):
-        try:
+        if hasattr(self._pe_lm, "print_trainable_parameters"):
             summary = self._pe_lm.print_trainable_parameters()
+            logger.debug(f'PELLM model summary: \n{summary}')
 
-            LOGGER.debug('PELLM model summary: \n{}'.format(summary))
-        except BaseException:
-            pass
-
-    def _get_trainable_parameters(self):
-        trainable = []
-        for n, p in self._pe_lm.named_parameters():
-            if p.requires_grad:
-                trainable.append(p)
-        return trainable
-
-    def forward(self, tokenized_data: dict):
+    def forward(self, **tokenized_data):
         return self._pe_lm(**tokenized_data)
 
-    def save_pretrained(self, path):
-        if not self.enable_save_pretrained:
-            raise ValueError(
-                "To save trainable parameters only, set enable_save_pretrained=True in your model")
-
-        from pathlib import Path
-
+    def save_pretrained(self, output_path):
         state_dict = {
             k: p.to("cpu") for k,
             p in self._pe_lm.named_parameters() if p.requires_grad}
-        Path.mkdir(Path(path), exist_ok=True)
-        torch.save(state_dict, Path(path).joinpath("adapter_model.bin"))
+        torch.save(state_dict, output_path)
 
 
 class AutoPELLM(PELLM):

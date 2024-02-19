@@ -19,17 +19,15 @@ from transformers import LlamaConfig
 from transformers import LlamaForCausalLM
 
 
-class LLAMAForCausalLM(PELLM):
+class LLaMa(PELLM):
     config_class = LlamaConfig
     enable_save_pretrained = True
 
     def __init__(self,
                  pretrained_path: str = None,
                  peft_type: str = None,
-                 peft_config: dict = None,
-                 fp16: bool = True) -> None:
+                 peft_config: dict = None) -> None:
 
-        self.fp16 = fp16
         super().__init__(pretrained_path=pretrained_path,
                          peft_type=peft_type,
                          peft_config=peft_config)
@@ -43,9 +41,6 @@ class LLAMAForCausalLM(PELLM):
         else:
             raise ValueError(
                 'config_path to pretrained model folder cannot be None')
-
-        if self.fp16:
-            self._pe_lm.half()
 
     def check_config(self, pretrain_path):
         config = AutoConfig.from_pretrained(pretrain_path)
