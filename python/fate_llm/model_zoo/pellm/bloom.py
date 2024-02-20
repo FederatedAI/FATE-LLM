@@ -18,7 +18,7 @@ from transformers import BloomForCausalLM
 from fate_llm.model_zoo.pellm.parameter_efficient_llm import PELLM
 
 
-class BloomForCausalLM(PELLM):
+class Bloom(PELLM):
 
     config_class = BloomConfig
     model_loader = BloomForCausalLM

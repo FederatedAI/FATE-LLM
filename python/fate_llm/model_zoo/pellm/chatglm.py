@@ -17,20 +17,18 @@ from fate_llm.model_zoo.pellm.parameter_efficient_llm import PELLM
 from transformers import AutoConfig
 
 
-class ChatGLMForConditionalGeneration(PELLM):
+class ChatGLM(PELLM):
     enable_save_pretrained = True
 
     def __init__(self,
                  pretrained_path: str = None,
                  peft_type: str = None,
                  peft_config: dict = None,
-                 fp16: bool = True,
                  pre_seq_len: int = None,
                  prefix_projection: bool = False) -> None:
 
         self.pre_seq_len = pre_seq_len
         self.prefix_projection = prefix_projection
-        self.fp16 = fp16
 
         super().__init__(pretrained_path=pretrained_path,
                          peft_type=peft_type,
@@ -44,15 +42,13 @@ class ChatGLMForConditionalGeneration(PELLM):
 
     def init_base_lm(self):
         super(
-            ChatGLMForConditionalGeneration,
+            ChatGLM,
             self).init_base_lm(
             trust_remote_code=True)
-        if self.fp16:
-            self._pe_lm.half()
 
     def add_peft(self):
         if self.pre_seq_len:
             self._pe_lm.half()
             self._pe_lm.transformer.prefix_encoder.float()
         else:
-            super(ChatGLMForConditionalGeneration, self).add_peft()
+            super(ChatGLM, self).add_peft()
