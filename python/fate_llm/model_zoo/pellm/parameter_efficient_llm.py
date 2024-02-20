@@ -20,7 +20,6 @@ from transformers import AutoConfig
 from transformers import AutoModel
 from transformers.configuration_utils import PretrainedConfig
 import logging
-import yaml
 
 
 logger = logging.getLogger(__name__)
@@ -99,8 +98,6 @@ class PELLM(torch.nn.Module):
             peft_config = getattr(peft, self.peft_type)()
         elif isinstance(self.peft_config, dict):
             peft_config = getattr(peft, self.peft_type)(**self.peft_config)
-        elif isinstance(self.peft_config, str):
-            peft_config = yaml.safe_load(self.peft_config)
         else:
             raise ValueError(f"Can not parse peft_config of {type(self.peft_config)}")
 
