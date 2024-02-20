@@ -90,7 +90,7 @@ class PromptDataset(Dataset):
             input_ids = self.tokenizer.build_inputs_with_special_tokens(
                 prompt_ids, target_ids)
 
-            if "chatglm2" in self.tokenizer_name_or_path:
+            if "chatglm2" in self.tokenizer_name_or_path.lower():
                 seq_length = input_ids.index(self.tokenizer.bos_token_id)
             else:
                 seq_length = len(prompt_ids)
