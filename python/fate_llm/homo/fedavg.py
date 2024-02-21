@@ -51,7 +51,9 @@ class Seq2SeqFedAVGClient(HomoSeq2SeqTrainerClient):
         tokenizer: Optional[PreTrainedTokenizer] = None,
         callbacks: Optional[List[TrainerCallback]] = [],
         compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
-        local_mode: bool = False
+        local_mode: bool = False,
+        save_trainable_weights_only: bool = False,
+        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ):
         # in case you forget to set evaluation_strategy
         if val_set is not None and training_args.evaluation_strategy == "no":
@@ -71,7 +73,9 @@ class Seq2SeqFedAVGClient(HomoSeq2SeqTrainerClient):
             tokenizer,
             callbacks,
             compute_metrics,
-            local_mode
+            local_mode,
+            save_trainable_weights_only,
+            preprocess_logits_for_metrics
         )
 
 

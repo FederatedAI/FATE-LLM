@@ -1,3 +1,18 @@
+#
+#  Copyright 2019 The FATE Authors. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
 from transformers import Seq2SeqTrainingArguments as _hf_Seq2SeqTrainingArguments, Seq2SeqTrainer
 from dataclasses import dataclass, field
 from typing import Optional
@@ -17,7 +32,10 @@ from torch.utils.data import _utils
 from transformers.trainer_callback import TrainerCallback
 from typing import Optional
 from dataclasses import dataclass, field
+from transformers.modeling_utils import unwrap_model
 
+
+TRAINABLE_WEIGHTS_NAME = "adapter_model.bin"
 
 
 @dataclass
@@ -82,7 +100,8 @@ class HomoSeq2SeqTrainerClient(Seq2SeqTrainer, HomoTrainerMixin):
         callbacks: Optional[List[TrainerCallback]] = [],
         compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
         local_mode: bool = False,
-        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None
+        save_trainable_weights_only: bool = False,
+        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ):
         # in case you forget to set evaluation_strategy
         if val_set is not None and training_args.evaluation_strategy == "no":
@@ -101,6 +120,7 @@ class HomoSeq2SeqTrainerClient(Seq2SeqTrainer, HomoTrainerMixin):
             callbacks=callbacks,
             compute_metrics=compute_metrics,
             local_mode=local_mode,
+            save_trainable_weights_only=save_trainable_weights_only,
         )
 
         # concat checkpoint path if checkpoint idx is set
@@ -124,5 +144,23 @@ class HomoSeq2SeqTrainerClient(Seq2SeqTrainer, HomoTrainerMixin):
         )
 
         self._add_fate_callback(self.callback_handler)
-        
-    
+
+    def _save(
+        self,
+        output_dir: Optional[str] = None,
+        state_dict=None
+    ):
+        if not self._save_trainable_weights_only:
+            return super()._save(output_dir, state_dict)
+        else:
+            model = unwrap_model(self.model)
+
+            if hasattr(model, "save_pretrained"):
+                model.save_pretrained(os.path.join(output_dir, TRAINABLE_WEIGHTS_NAME))
+            else:
+                state_dict = {
+                    k: p.to("cpu") for k,
+                                       p in model.named_parameters() if p.requires_grad
+                }
+
+                torch.save(state_dict, os.path.join(output_dir, TRAINABLE_WEIGHTS_NAME))

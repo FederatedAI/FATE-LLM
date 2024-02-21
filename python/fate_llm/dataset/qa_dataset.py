@@ -17,7 +17,7 @@ from datasets import load_from_disk, load_dataset
 from transformers import AutoTokenizer
 import torch as t
 import os
-from torch.utils.data import Dataset
+from fate.ml.nn.dataset.base import Dataset
 
 
 """

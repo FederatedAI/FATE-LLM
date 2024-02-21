@@ -13,6 +13,7 @@ from torch.nn import Module
 from transformers import TrainerState, TrainerControl, PreTrainedTokenizer
 from fate_llm.model_zoo.offsite_tuning.offsite_tuning_model import OffsiteTuningBaseModel
 import logging
+import torch
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,8 @@ class OffsiteTuningTrainerClient(Seq2SeqFedAVGClient):
         callbacks: List[TrainerCallback] = [],
         compute_metrics: Callable = None,
         aggregate_model: bool = False,
+        save_trainable_weights_only: bool = False,
+        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ):
         assert isinstance(model, OffsiteTuningBaseModel), "model must be the subclass of OffsiteTuningBaseModel"
         if aggregate_model == False and fed_args is None:
@@ -42,7 +45,7 @@ class OffsiteTuningTrainerClient(Seq2SeqFedAVGClient):
         elif fed_args is None:
             raise ValueError("fed_args must be provided when aggregate_model is True")
 
-        local_mode = True  if not aggregate_model else False
+        local_mode = True if not aggregate_model else False
             
         super().__init__(
             ctx,
@@ -57,7 +60,9 @@ class OffsiteTuningTrainerClient(Seq2SeqFedAVGClient):
             tokenizer,
             callbacks,
             compute_metrics,
-            local_mode
+            local_mode,
+            save_trainable_weights_only,
+            preprocess_logits_for_metrics
         )
         self._aggregate_model = aggregate_model
 
@@ -147,3 +152,14 @@ class OffsiteTuningTrainerServer(Seq2SeqFedAVGServer):
             self.on_init_end(self.ctx, aggregator=self.aggregator)
             self.on_train_begin(self.ctx, aggregator=self.aggregator)
             self.on_train_end(self.ctx, aggregator=self.aggregator)
+
+    def save_model(
+        self,
+        output_dir: Optional[str] = None,
+        state_dict=None
+    ):
+        import torch
+        import os
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        torch.save(self.model.state_dict(), output_dir + '/pytorch_model.bin')
