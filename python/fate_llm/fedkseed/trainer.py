@@ -21,7 +21,8 @@ class KSeedZOExtendedTrainer(Trainer):
     def __init__(
         self,
         model: Union[PreTrainedModel, nn.Module] = None,
-        args: Union["KSeedTrainingArguments", TrainingArguments] = None,
+        training_args: TrainingArguments = None,
+        kseed_args: "KSeedTrainingArguments" = None,
         data_collator: Optional[DataCollator] = None,
         train_dataset: Optional[Dataset] = None,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
@@ -34,7 +35,7 @@ class KSeedZOExtendedTrainer(Trainer):
     ):
         super().__init__(
             model=model,
-            args=args,
+            args=training_args,
             data_collator=data_collator,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
@@ -45,7 +46,7 @@ class KSeedZOExtendedTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
-        self.args = args
+        self.kseed_args = kseed_args
         self._kseed_optimizer = None
 
         self._seed_candidates = None
@@ -59,7 +60,7 @@ class KSeedZOExtendedTrainer(Trainer):
         """
         hook to get the directional derivative history
         """
-        if KSeedZOExtendedTrainer.k_seed_zo_mode(self.args):
+        if KSeedZOExtendedTrainer.k_seed_zo_mode(self.kseed_args):
             if self._kseed_optimizer is None:
                 raise ValueError("KSeedZerothOrderOptimizer is not configured")
             return self._kseed_optimizer.directional_derivative_history
@@ -74,7 +75,7 @@ class KSeedZOExtendedTrainer(Trainer):
         """
         hook to do the step with KSeedZerothOrderOptimizer
         """
-        if KSeedZOExtendedTrainer.k_seed_zo_mode(self.args):
+        if KSeedZOExtendedTrainer.k_seed_zo_mode(self.kseed_args):
             if self._kseed_optimizer is None:
                 raise ValueError("KSeedZerothOrderOptimizer is not configured")
 
@@ -101,7 +102,7 @@ class KSeedZOExtendedTrainer(Trainer):
         """
         hook to add KSeedZerothOrderOptimizer
         """
-        if KSeedZOExtendedTrainer.k_seed_zo_mode(self.args):
+        if KSeedZOExtendedTrainer.k_seed_zo_mode(self.kseed_args):
 
             if self._seed_candidates is None or self._seed_probabilities is None:
                 raise ValueError("Seed candidates and probabilities are not configured.")
@@ -114,9 +115,9 @@ class KSeedZOExtendedTrainer(Trainer):
                 seed_candidates=self._seed_candidates,
                 seed_probabilities=self._seed_probabilities,
                 lr=self.args.learning_rate,
-                eps=self.args.eps,
+                eps=self.kseed_args.eps,
                 weight_decay=self.args.weight_decay,
-                grad_clip=self.args.grad_clip,
+                grad_clip=self.kseed_args.grad_clip,
             )
             # we need to keep the reference to the original optimizer to use it in training_step
             self._kseed_optimizer = self.optimizer

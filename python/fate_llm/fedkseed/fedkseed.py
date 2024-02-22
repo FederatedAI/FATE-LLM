@@ -6,23 +6,20 @@ from typing import List, Mapping
 import torch
 from fate.arch.context import Context
 
-from fate_llm.fedkseed.args import KSeedTrainingArguments
 from fate_llm.fedkseed.pytorch_utils import get_optimizer_parameters_grouped_with_decay
 from fate_llm.fedkseed.trainer import KSeedZOExtendedTrainer
 from fate_llm.fedkseed.zo_utils import probability_from_amps, directional_derivative_step, get_even_seed_probabilities
+from fate_llm.fedkseed.args import KSeedTrainingArguments
 
 logger = logging.getLogger(__name__)
 
 
 class Trainer:
     def __init__(
-        self, ctx: Context, seed_candidates: torch.LongTensor, args, data_collator, train_dataset, eval_dataset
+            self, ctx: Context, seed_candidates: torch.LongTensor, args
     ):
         self.ctx = ctx
         self.args = args
-        self.data_collator = data_collator
-        self.train_dataset = train_dataset
-        self.eval_dataset = eval_dataset
 
         self.seed_candidates = seed_candidates
         self.k = len(seed_candidates)
@@ -86,19 +83,21 @@ class Trainer:
 
 
 class ClientTrainer:
-    def __init__(self, ctx: Context, model, args, train_dataset, eval_dataset, data_collator, tokenizer):
+    def __init__(self, ctx: Context, model, fedkseed_args, training_args, train_dataset, eval_dataset, data_collator,
+                 tokenizer):
         self.ctx = ctx
-        self.args = args
+        self.fedkseed_args = fedkseed_args
+        self.training_args = training_args
         self.data_collator = data_collator
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
         self.tokenizer = tokenizer
 
-        self.weight_decay = args.weight_decay
+        self.weight_decay = training_args.weight_decay
         self.model_0 = model
 
     def serve_loop(self):
-        for i, sub_ctx in self.ctx.ctxs_range(self.args.num_aggregations):
+        for i, sub_ctx in self.ctx.ctxs_range(self.fedkseed_args.num_aggregations):
             # step1: wait for the server to send the seed candidates and probabilities or exit signal
             logger.info(f"training loop started: {i}")
             should_exit, kwargs = sub_ctx.arbiter.get("train_once")
@@ -122,19 +121,21 @@ class ClientTrainer:
     def train_once(self, seed_candidates, seed_probabilities, direction_derivative_sum) -> Mapping[int, List[float]]:
         # build model
         model = copy.deepcopy(self.model_0)
-        model.to(self.args.device)
+        model.to(self.training_args.device)
         if direction_derivative_sum is not None:
             param_groups = get_optimizer_parameters_grouped_with_decay(model, self.weight_decay)
             for seed, grad in direction_derivative_sum.items():
                 if grad != 0.0:
                     directional_derivative_step(
-                        param_groups, seed, grad, lr=self.args.learning_rate, weight_decay=self.args.weight_decay
+                        param_groups, seed, grad, lr=self.training_args.learning_rate,
+                        weight_decay=self.training_args.weight_decay
                     )
 
         # train
         trainer = KSeedZOExtendedTrainer(
             model=model,
-            args=self.args,
+            training_args=self.training_args,
+            kseed_args=self.fedkseed_args,
             tokenizer=self.tokenizer,
             data_collator=self.data_collator,
             train_dataset=self.train_dataset,
