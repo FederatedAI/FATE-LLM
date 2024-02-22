@@ -12,202 +12,171 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#
-import torch as t
-from torch import nn
-from federatedml.util import LOGGER
-from transformers import AutoModel
-import numpy as np
+
+from fate.components.components.nn.nn_runner import (
+    load_model_dict_from_path,
+    dir_warning,
+    loader_load_from_conf,
+    run_dataset_func,
+)
+from fate.ml.nn.homo.fedavg import FedAVGArguments
+from fate_llm.homo.fedavg import Seq2SeqFedAVGClient, Seq2SeqFedAVGServer
+from typing import Dict
+from fate.components.components.nn.loader import Loader
+from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainingArguments
+from typing import Union, Optional
+from transformers.trainer_utils import get_last_checkpoint
+from typing import Literal
+import logging
+from fate.arch.dataframe import DataFrame
+from fate_llm.runner.homo_seq2seq_runner import Seq2SeqRunner, _check_instances
+from fate_llm.homo.offsite_tuning import OffsiteTuningTrainerClient, OffsiteTuningTrainerServer
 
 
-
-def get_dropout_emulator_and_adapters(
-        transformer_layers: nn.ModuleList,
-        emulator_layer_num: int,
-        adapter_top_layer_num: int,
-        adapter_bottom_layer_num: int):
-
-    assert adapter_bottom_layer_num > 0 and adapter_top_layer_num > 0, "adapter layer num must be greater than 0"
-    assert emulator_layer_num < len(
-        transformer_layers), "emulator layer num must be less than the number of transformer layers"
-    assert adapter_bottom_layer_num + adapter_top_layer_num < len(
-        transformer_layers), "adapter layer num must be less than the number of transformer layers"
-    assert emulator_layer_num < len(
-        transformer_layers) and emulator_layer_num > 0, "emulator layer num must be less than the number of transformer layers"
-
-    bottom_idx = adapter_bottom_layer_num
-    top_idx = len(transformer_layers) - adapter_top_layer_num
-    bottom_layers = transformer_layers[:bottom_idx]
-    top_layers = transformer_layers[top_idx:]
-    kept_layers = transformer_layers[bottom_idx:top_idx]
-    emulator = nn.ModuleList()
-    stride = (len(kept_layers) - 1) / (emulator_layer_num - 1)
-
-    layer_idx = []
-    for i in range(emulator_layer_num):
-        idx = int(round(i * stride))
-        layer_idx.append(idx)
-        emulator.append(kept_layers[idx])
-    LOGGER.info(
-        'take layer {} of the original model as the emulator'.format(
-            t.Tensor(layer_idx) +
-            bottom_idx))
-    return nn.ModuleList(emulator), nn.ModuleList(
-        bottom_layers), nn.ModuleList(top_layers)
+logger = logging.getLogger(__name__)
 
 
+class OTRunner(Seq2SeqRunner):
 
-def split_numpy_array(embedding_matrix, n, suffix):
-    # Calculate the indices where the splits should occur
-    embedding_matrix = embedding_matrix['weight']
-    indices = np.linspace(0, embedding_matrix.shape[0], n+1, dtype=int)
-
-    # Split the embedding matrix at the calculated indices
-    slices = [embedding_matrix[indices[i]:indices[i+1]] for i in range(n)]
-
-    # Create a dictionary with the slices
-    result_dict = {suffix+str(i): slice for i, slice in enumerate(slices)}
-    return result_dict
-
-
-def recover_numpy_array(slices_dict, suffix=""):
-    # Get the slices from the dictionary and concatenate them
-    slices = [slices_dict[suffix + str(i)] for i in range(len(slices_dict))]
-    complete_array = np.concatenate(slices, axis=0)
-    return {'weight': complete_array}
-
-
-class OffsiteTuningBaseModel(t.nn.Module):
-
-    def __init__(self, emulator_layer_num: int, adapter_top_layer_num: int = 2,
-                 adapter_bottom_layer_num: int = 2, fp16_mix_precision=False):
-        super().__init__()
-        self.fp16_mix_precision = fp16_mix_precision
-        self.model = self.get_base_model()
-        self.initialize_model()
-        self.emulator, self.adapter_bottom, self.adapter_top = get_dropout_emulator_and_adapters(
-            transformer_layers=self.get_model_transformer_blocks(self.model),
-            emulator_layer_num=emulator_layer_num,
-            adapter_top_layer_num=adapter_top_layer_num,
-            adapter_bottom_layer_num=adapter_bottom_layer_num
+    def __init__(
+        self,
+        model_conf: Optional[Dict] = None,
+        dataset_conf: Optional[Dict] = None,
+        optimizer_conf: Optional[Dict] = None,
+        training_args_conf: Optional[Dict] = None,
+        fed_args_conf: Optional[Dict] = None,
+        data_collator_conf: Optional[Dict] = None,
+        tokenizer_conf: Optional[Dict] = None,
+        task_type: Literal["causal_lm", "other"] = "causal_lm",
+        save_trainable_weights_only: bool = False,
+        aggregate_model: bool = False,
+        algo: str = 'ot'
+    ) -> None:
+        super(OTRunner, self).__init__(
+            algo, model_conf, dataset_conf, optimizer_conf, training_args_conf, fed_args_conf,
+            data_collator_conf, tokenizer_conf, task_type, local_mode=False
         )
-        self.post_initialization()
 
-    def initialize_model(self):
-        if self.fp16_mix_precision:
-            self.model.half()
-        for param in self.model.parameters():
-            param.requires_grad = False
+        self.aggregate_model = aggregate_model
+        self.save_trainable_weights_only = save_trainable_weights_only
 
-    def post_initialization(self):
-        pass
+    def setup(self, train_set=None, validate_set=None, output_dir=None, saved_model=None, stage="train"):
 
-    def get_adapter_top(self):
-        return self.adapter_top
+        if stage == "predict":
+            self.local_mode = True
+            
+        ctx = self.get_context()
+        model = loader_load_from_conf(self.model_conf)
 
-    def get_adapter_bottom(self):
-        return self.adapter_bottom
+        if model is None:
+            raise ValueError(f"model is None, cannot load model from conf {self.model_conf}")
+        
+        if output_dir is None:
+            output_dir = "./"
 
-    def get_emulator(self):
-        return self.emulator
+        resume_path = None
+        if saved_model is not None:
+            model_dict = load_model_dict_from_path(saved_model)
+            model.load_state_dict(model_dict)
+            logger.info(f"loading model dict from {saved_model} to model done")
+            if get_last_checkpoint(saved_model) is not None:
+                resume_path = saved_model
+                logger.info(f"checkpoint detected, resume_path set to {resume_path}")
 
-    def get_additional_param_state_dict(self):
-        # get parameter of additional parameter
-        return {}
-
-    def load_additional_param_state_dict(self, submodel_weights: dict):
-        # load additional weights:
-        pass
-
-    def _get_numpy_arr(self, v):
-        if v.dtype == t.bfloat16:
-            # float 32
-            v = v.detach().cpu().float().numpy()
+        # load optimizer
+        if self.optimizer_conf:
+            optimizer_loader = Loader.from_dict(self.optimizer_conf)
+            optimizer_ = optimizer_loader.load_item()
+            optimizer_params = optimizer_loader.kwargs
+            optimizer = optimizer_(model.parameters(), **optimizer_params)
         else:
-            v = v.detach().cpu().numpy()
+            optimizer = None
+        # load collator func
+        data_collator = loader_load_from_conf(self.data_collator_conf)
+        # load tokenizer if import conf provided
+        tokenizer = loader_load_from_conf(self.tokenizer_conf)
+        # args
+        dir_warning(self.training_args_conf)
+        training_args = Seq2SeqTrainingArguments(**self.training_args_conf)
+        self.training_args = training_args
+        # reset to default, saving to arbitrary path is not allowed in
+        # DefaultRunner
+        training_args.output_dir = output_dir
+        training_args.resume_from_checkpoint = resume_path  # resume path
+        fed_args = FedAVGArguments(**self.fed_args_conf)
 
-        return v
+        # prepare trainer
+        if self.is_client():
+            trainer = OffsiteTuningTrainerClient(
+                ctx=ctx,
+                model=model,
+                optimizer=optimizer,
+                training_args=training_args,
+                fed_args=fed_args,
+                data_collator=data_collator,
+                tokenizer=tokenizer,
+                train_set=train_set,
+                val_set=validate_set,
+                save_trainable_weights_only=self.save_trainable_weights_only,
+                aggregate_model=self.aggregate_model
+            )
 
+        elif self.is_server():
+            trainer = OffsiteTuningTrainerServer(
+                ctx=ctx,
+                model=model,
+                aggregate_model=self.aggregate_model
+            )
 
-    def load_numpy_state_dict(self, module_dict, state_dict):
-        param_dict = module_dict
+        _check_instances(
+            trainer=trainer,
+            model=model,
+            optimizer=optimizer,
+            train_args=training_args,
+            fed_args=fed_args,
+            data_collator=data_collator,
+        )
 
-        for k, v in param_dict.items():
-            if k not in state_dict:
-                continue
-            addition_weights = {
-                k: t.tensor(v) for k,
-                v in state_dict[k].items()}
-            v.load_state_dict(addition_weights)
+        return trainer
 
-    def get_numpy_state_dict(self, module_dict):
+    def server_setup(self, stage="train"):
+        if stage == "predict":
+            self.local_mode = True
+        if self.algo == "fedavg":
+            server_class: Seq2SeqFedAVGServer = Seq2SeqFedAVGServer
+        else:
+            raise ValueError(f"algo {self.algo} not supported")
+        ctx = self.get_context()
+        trainer = server_class(ctx=ctx, local_mode=self.local_mode)
+        _check_instances(trainer)
+        return trainer
+    
 
-        weight_dict = {}
-        for k, v in module_dict.items():
-            weight_dict[k] = {
-                k: self._get_numpy_arr(v) for k,
-                v in v.state_dict().items()}
-        return weight_dict
+    def train(
+        self,
+        train_data: Optional[Union[str, DataFrame]] = None,
+        validate_data: Optional[Union[str, DataFrame]] = None,
+        output_dir: str = None,
+        saved_model_path: str = None,
+    ):
+        
+        if self.is_client():
+            train_set = self._prepare_data(train_data, "train_data")
+            validate_set = self._prepare_data(validate_data, "val_data")
+            trainer = self.setup(
+                train_set=train_set, validate_set=validate_set, output_dir=output_dir, saved_model=saved_model_path
+            )
+            self.trainer = trainer
+            trainer.train()
 
-    def get_submodel_weights(self) -> dict:
-        submodel_weights = {
-            "emulator": {
-                k: self._get_numpy_arr(v) for k,
-                v in self.get_emulator().state_dict().items()},
-            "adapter_top": {
-                k: self._get_numpy_arr(v) for k,
-                v in self.get_adapter_top().state_dict().items()},
-            "adapter_bottom": {
-                k: self._get_numpy_arr(v) for k,
-                v in self.get_adapter_bottom().state_dict().items()}}
-        addition_weights = self.get_additional_param_state_dict()
-        submodel_weights.update(addition_weights)
-        return submodel_weights
+        elif self.is_server():
+            trainer = self.setup(
+                train_set=None, validate_set=None, output_dir=output_dir, saved_model=saved_model_path
+            )
+            trainer.train()
 
-    def load_submodel_weights(self, submodel_weights: dict):
-
-        emulator_weights = {
-            k: t.tensor(v) for k,
-            v in submodel_weights['emulator'].items()}
-        adapter_top_weights = {
-            k: t.tensor(v) for k,
-            v in submodel_weights['adapter_top'].items()}
-        adapter_bottom_weights = {
-            k: t.tensor(v) for k,
-            v in submodel_weights['adapter_bottom'].items()}
-
-        emulator = self.get_emulator()
-        adapter_top = self.get_adapter_top()
-        adapter_bottom = self.get_adapter_bottom()
-
-        emulator.load_state_dict(emulator_weights)
-        adapter_top.load_state_dict(adapter_top_weights)
-        adapter_bottom.load_state_dict(adapter_bottom_weights)
-        self.load_additional_param_state_dict(submodel_weights)
-
-    def forward(self, **kwargs):
-        raise NotImplementedError()
-
-    def get_base_model(self):
-        raise NotImplementedError()
-
-    def get_model_transformer_blocks(self, model: t.nn.Module):
-        raise NotImplementedError()
-
-
-class OffsiteTuningMainModel(OffsiteTuningBaseModel):
-
-    def post_initialization(self):
-        pass
-
-
-class OffsiteTuningSubModel(OffsiteTuningBaseModel):
-
-    def post_initialization(self):
-        # mix precision model training
-        for param in self.adapter_top.parameters():
-            param.data = param.data.float()
-            param.requires_grad = True
-        for param in self.adapter_bottom.parameters():
-            param.data = param.data.float()
-            param.requires_grad = True
+        if output_dir is not None:
+            if self.training_args.deepspeed and self.training_args.local_rank != 0:
+                pass
+            else:
+                trainer.save_model(output_dir)
