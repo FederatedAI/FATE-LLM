@@ -1,12 +1,8 @@
 from dataclasses import dataclass, field
 
-from transformers import TrainingArguments
-from transformers.utils import add_start_docstrings
-
 
 @dataclass
-@add_start_docstrings(TrainingArguments.__doc__)
-class KSeedTrainingArguments(TrainingArguments):
+class KSeedTrainingArguments:
     """
     TrainingArguments is the subset of the arguments we use in our example scripts, they are the arguments that
 

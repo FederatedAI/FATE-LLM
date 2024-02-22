@@ -96,7 +96,7 @@ class ClientTrainer:
         self.weight_decay = training_args.weight_decay
         self.model_0 = model
 
-    def serve_loop(self):
+    def train(self):
         for i, sub_ctx in self.ctx.ctxs_range(self.fedkseed_args.num_aggregations):
             # step1: wait for the server to send the seed candidates and probabilities or exit signal
             logger.info(f"training loop started: {i}")
