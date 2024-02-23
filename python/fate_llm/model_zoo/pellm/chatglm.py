@@ -18,33 +18,28 @@ from transformers import AutoConfig
 
 
 class ChatGLM(PELLM):
-    enable_save_pretrained = True
-
     def __init__(self,
                  pretrained_path: str = None,
                  peft_type: str = None,
                  peft_config: dict = None,
                  pre_seq_len: int = None,
-                 prefix_projection: bool = False) -> None:
+                 prefix_projection: bool = False,
+                 **kwargs) -> None:
 
         self.pre_seq_len = pre_seq_len
         self.prefix_projection = prefix_projection
 
         super().__init__(pretrained_path=pretrained_path,
                          peft_type=peft_type,
-                         peft_config=peft_config)
+                         peft_config=peft_config,
+                         **kwargs
+                         )
 
     def init_config(self):
         self.config = AutoConfig.from_pretrained(
             self.config_path, trust_remote_code=True)
         self.config.pre_seq_len = self.pre_seq_len
         self.config.prefix_projection = self.prefix_projection
-
-    def init_base_lm(self):
-        super(
-            ChatGLM,
-            self).init_base_lm(
-            trust_remote_code=True)
 
     def add_peft(self):
         if self.pre_seq_len:
