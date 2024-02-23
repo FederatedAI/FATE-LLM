@@ -40,7 +40,7 @@ from transformers.modeling_utils import PreTrainedModel, unwrap_model
 logger = logging.getLogger(__name__)
 
 
-SUPPORTED_ALGO = ["fedavg"]
+SUPPORTED_ALGO = ["fedavg", "ot"]
 
 
 def _check_instances(
