@@ -20,7 +20,6 @@ from transformers import AutoConfig
 from transformers import AutoModel
 from transformers.configuration_utils import PretrainedConfig
 import logging
-import yaml
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +42,8 @@ class PELLM(torch.nn.Module):
                  pretrained_path: str = None,
                  peft_type: str = None,
                  peft_config: dict = None,
+                 torch_dtype: str = None,
+                 trust_remote_code: bool = False,
                  **kwargs
                  ) -> None:
 
@@ -52,6 +53,8 @@ class PELLM(torch.nn.Module):
         self.config_path = pretrained_path
         self.peft_type = peft_type
         self.peft_config = peft_config
+        self.torch_dtype = None if not torch_dtype else getattr(torch, torch_dtype)
+        self.trust_remote_code = trust_remote_code
 
         assert self.config_path is not None or self.config is not None, \
             "At least one of config_path and config must be set."
@@ -63,12 +66,12 @@ class PELLM(torch.nn.Module):
 
     def init_lm_with_peft(self, **kwargs):
         self.init_config(**kwargs)
-        self.init_base_lm()
+        self.init_base_lm(**kwargs)
         self.add_peft()
 
     def init_config(self, **kwargs):
         if self.config_path is not None:
-            self.config = AutoConfig.from_pretrained(self.config_path)
+            self.config = AutoConfig.from_pretrained(self.config_path, trust_remote_code=self.trust_remote_code)
         elif self.config is not None and self.config_class is not None:
             self.config = self.config_class().from_dict(self.config)
         else:
@@ -83,10 +86,14 @@ class PELLM(torch.nn.Module):
         model_loader = self.model_loader if self.model_loader is not None else AutoModel
         if self.config is not None:
             self._pe_lm = model_loader.from_pretrained(
-                self.config_path, config=self.config, **kwargs)
+                self.config_path, config=self.config,
+                torch_dtype=self.torch_dtype, **kwargs,
+                trust_remote_code=self.trust_remote_code
+            )
         elif self.config_path is not None:
             self._pe_lm = model_loader.from_pretrained(
-                self.config_path, **kwargs)
+                self.config_path, torch_dtype=self.torch_dtype,
+                trust_remote_code=self.trust_remote_code, **kwargs)
         else:
             raise ValueError(
                 'config_path to pretrained model folder cannot be None')
@@ -99,8 +106,6 @@ class PELLM(torch.nn.Module):
             peft_config = getattr(peft, self.peft_type)()
         elif isinstance(self.peft_config, dict):
             peft_config = getattr(peft, self.peft_type)(**self.peft_config)
-        elif isinstance(self.peft_config, str):
-            peft_config = yaml.safe_load(self.peft_config)
         else:
             raise ValueError(f"Can not parse peft_config of {type(self.peft_config)}")
 
