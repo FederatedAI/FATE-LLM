@@ -16,7 +16,7 @@
 import copy
 import pandas as pd
 from fate.ml.nn.dataset.base import Dataset
-from .tokenizers import get_prompt_tokenizer
+from ..data.tokenizers.cust_tokenizer import get_tokenizer
 
 
 PROMPT_TEMPLATE = "{prompt}"
@@ -30,9 +30,9 @@ class PromptDataset(Dataset):
                  padding=False,
                  padding_side='left',
                  pad_token=None,
-                 pad_token_id=0,
-                 bos_token_id=1,
-                 eos_token_id=2,
+                 pad_token_id=None,
+                 bos_token_id=None,
+                 eos_token_id=None,
                  add_eos_token=True,
                  prompt_template=None,
                  add_special_tokens=False,
@@ -47,7 +47,7 @@ class PromptDataset(Dataset):
         self.add_special_tokens = add_special_tokens
         self.max_length = text_max_length
 
-        self.tokenizer = get_prompt_tokenizer(
+        self.tokenizer = get_tokenizer(
             tokenizer_name_or_path=tokenizer_name_or_path,
             trust_remote_code=trust_remote_code,
             pad_token=pad_token,
