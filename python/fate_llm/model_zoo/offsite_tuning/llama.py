@@ -37,9 +37,6 @@ class LlamaMainModel(OffsiteTuningMainModel):
 
     def get_model_transformer_blocks(self, model: LlamaForCausalLM):
         return model.model.layers
-    
-    def forward(self, x):
-        return self.model(**x)
 
     def get_additional_param_state_dict(self):
         # get parameter of additional parameter
@@ -74,8 +71,8 @@ class LlamaMainModel(OffsiteTuningMainModel):
         new_submodel_weight['wte'] = wte
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
-    def forward(self, x):
-        return self.model(**x)
+    def forward(self, **kwargs):
+        return self.model(**kwargs)
 
 
 class LlamaSubModel(OffsiteTuningSubModel):
@@ -111,9 +108,6 @@ class LlamaSubModel(OffsiteTuningSubModel):
     def get_model_transformer_blocks(self, model: LlamaForCausalLM):
         return model.model.layers
 
-    def forward(self, x):
-        return self.model(**x)
-
     def get_additional_param_state_dict(self):
         # get parameter of additional parameter
         model = self.model
@@ -147,8 +141,8 @@ class LlamaSubModel(OffsiteTuningSubModel):
         new_submodel_weight['wte'] = wte
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
-    def forward(self, x):
-        return self.model(**x)
+    def forward(self, **kwargs):
+        return self.model(**kwargs)
 
     def parameters(self, recurse=True):
         if self.partial_weight_decay is None:
