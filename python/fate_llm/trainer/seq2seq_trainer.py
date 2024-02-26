@@ -155,7 +155,7 @@ class HomoSeq2SeqTrainerClient(Seq2SeqTrainer, HomoTrainerMixin):
         else:
             model = unwrap_model(self.model)
 
-            if hasattr(model, "save_pretrained"):
+            if hasattr(model, "save_trainable"):
                 model.save_pretrained(os.path.join(output_dir, TRAINABLE_WEIGHTS_NAME))
             else:
                 state_dict = {

@@ -15,7 +15,8 @@
 #
 import peft
 import torch
-from peft import PeftModel
+from collections.abc import Mapping
+from peft import PeftModel, TaskType
 from transformers import AutoConfig
 from transformers import AutoModel
 from transformers.configuration_utils import PretrainedConfig
@@ -41,7 +42,7 @@ class PELLM(torch.nn.Module):
                  config: dict = None,
                  pretrained_path: str = None,
                  peft_type: str = None,
-                 peft_config: dict = None,
+                 peft_config=None,
                  torch_dtype: str = None,
                  trust_remote_code: bool = False,
                  **kwargs
@@ -66,7 +67,7 @@ class PELLM(torch.nn.Module):
 
     def init_lm_with_peft(self, **kwargs):
         self.init_config(**kwargs)
-        self.init_base_lm(**kwargs)
+        self.init_base_lm()
         self.add_peft()
 
     def init_config(self, **kwargs):
@@ -110,16 +111,22 @@ class PELLM(torch.nn.Module):
             raise ValueError(f"Can not parse peft_config of {type(self.peft_config)}")
 
         self._pe_lm = peft.get_peft_model(self._pe_lm, peft_config)
+        self.peft_config = peft_config
 
     def model_summary(self):
         if hasattr(self._pe_lm, "print_trainable_parameters"):
             summary = self._pe_lm.print_trainable_parameters()
             logger.debug(f'PELLM model summary: \n{summary}')
 
-    def forward(self, **tokenized_data):
-        return self._pe_lm(**tokenized_data)
+    def forward(self, *args, **kwargs):
+        forward_ret = self._pe_lm.forward(*args, **kwargs)
 
-    def save_pretrained(self, output_path):
+        if self.peft_config.task_type == TaskType.SEQ_CLS:
+            return forward_ret.logits
+        else:
+            return forward_ret
+
+    def save_trainable(self, output_path):
         state_dict = {
             k: p.to("cpu") for k,
             p in self._pe_lm.named_parameters() if p.requires_grad}
