@@ -18,14 +18,13 @@ from typing import Dict
 from typing import Literal
 from typing import Optional
 
+import transformers
 from fate.components.components.nn.nn_runner import (
     NNRunner,
-    load_model_dict_from_path,
     dir_warning,
     loader_load_from_conf,
 )
 from fate.components.components.nn.runner.homo_default_runner import DefaultRunner
-from transformers.trainer_utils import get_last_checkpoint
 
 from fate_llm.fedkseed.fedkseed import Trainer, FedKSeedTrainingArguments, ClientTrainer
 from fate_llm.fedkseed.zo_utils import build_seed_candidates
@@ -81,34 +80,22 @@ class FedKSeedRunner(DefaultRunner):
 
         ctx = self.get_context()
 
-        model = loader_load_from_conf(self.model_conf)
+        model = maybe_loader_load_from_conf(self.model_conf)
         if model is None:
             raise ValueError(f"model is None, cannot load model from conf {self.model_conf}")
 
         if output_dir is None:
             output_dir = "./"
 
-        resume_path = None
-        if saved_model is not None:
-            model_dict = load_model_dict_from_path(saved_model)
-            model.load_state_dict(model_dict)
-            logger.info(f"loading model dict from {saved_model} to model done")
-            if get_last_checkpoint(saved_model) is not None:
-                resume_path = saved_model
-                logger.info(f"checkpoint detected, resume_path set to {resume_path}")
+        tokenizer = transformers.AutoTokenizer.from_pretrained(**self.data_collator_conf["kwargs"]["tokenizer_params"])
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "right"
 
-        data_collator = loader_load_from_conf(self.data_collator_conf)
-        # load tokenizer if import conf provided
-        tokenizer = loader_load_from_conf(self.tokenizer_conf)
-        # args
+        data_collator = transformers.DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
         dir_warning(self.training_args_conf)
         training_args = Seq2SeqTrainingArguments(**self.training_args_conf)
         self.training_args = training_args
-        # reset to default, saving to arbitrary path is not allowed in
-        # DefaultRunner
         training_args.output_dir = output_dir
-        training_args.resume_from_checkpoint = resume_path  # resume path
-
         fedkseed_args = FedKSeedTrainingArguments(**self.fed_args_conf)
         training_args = Seq2SeqTrainingArguments(**self.training_args_conf)
         trainer = ClientTrainer(
@@ -133,5 +120,14 @@ class FedKSeedRunner(DefaultRunner):
         training_args = Seq2SeqTrainingArguments(**self.training_args_conf)
 
         seed_candidates = build_seed_candidates(fedkseed_args.k, low=0, high=2 ** 32)
-        trainer = Trainer(ctx=ctx, seed_candidates=seed_candidates, args=training_args)
+        trainer = Trainer(ctx=ctx, seed_candidates=seed_candidates, args=training_args, fedkseed_args=fedkseed_args)
         return trainer
+
+
+def maybe_loader_load_from_conf(conf):
+    from fate_llm.model_zoo.hf_model import HFAutoModelForCausalLM
+
+    model = loader_load_from_conf(conf)
+    if isinstance(model, HFAutoModelForCausalLM):
+        model = model.load()
+    return model

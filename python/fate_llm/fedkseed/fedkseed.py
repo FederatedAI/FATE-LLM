@@ -16,36 +16,45 @@ logger = logging.getLogger(__name__)
 
 class Trainer:
     def __init__(
-            self, ctx: Context, seed_candidates: torch.LongTensor, args
+            self, ctx: Context, seed_candidates: torch.LongTensor, args, fedkseed_args,
     ):
         self.ctx = ctx
         self.args = args
+        self.fedkseed_args = fedkseed_args
 
         self.seed_candidates = seed_candidates
         self.k = len(seed_candidates)
-        self.clients = ctx.hosts
         self.model = None
+
+    @staticmethod
+    def get_clients(ctx: Context):
+        clients = [ctx.guest]
+        try:
+            clients.extend(ctx.hosts)
+        except:
+            pass
+        return clients
 
     def load_model(self):
         raise NotImplementedError
 
     def train(self):
-        direction_derivative_history = {seed.item(): [self.args.grad_initial] for seed in self.seed_candidates}
+        direction_derivative_history = {seed.item(): [self.fedkseed_args.grad_initial] for seed in self.seed_candidates}
         direction_derivative_sum = None
         seed_probabilities = None
-        for aggregation_iter, sub_ctx in self.ctx.ctxs_range(self.args.num_aggregations):
+        for aggregation_iter, sub_ctx in self.ctx.ctxs_range(self.fedkseed_args.num_aggregations):
             # step1: re-calculate sample probabilities for each seed
             if seed_probabilities is None:
                 seed_probabilities = get_even_seed_probabilities(self.k)
             else:
                 seed_probabilities = probability_from_amps(
                     [direction_derivative_history[seed.item()] for seed in self.seed_candidates],
-                    self.args.bias_loss_clip,
+                    self.fedkseed_args.bias_loss_clip,
                 )
 
             # step2(rpc): remote call to the clients to get the directional derivative history
             # proposal
-            for client in sub_ctx.hosts:
+            for client in self.get_clients(sub_ctx):
                 client.put(
                     "train_once",
                     (
@@ -61,7 +70,7 @@ class Trainer:
             if direction_derivative_sum is None:
                 direction_derivative_sum = {seed.item(): 0.0 for seed in self.seed_candidates}
             # wait for reply and update the directional derivative history
-            for client in sub_ctx.hosts:
+            for client in self.get_clients(sub_ctx):
                 client_directional_derivative_history = client.get("direction_derivative_history")
                 for seed, history in client_directional_derivative_history.items():
                     # torch.LongTensor -> int
@@ -143,7 +152,8 @@ class ClientTrainer:
         )
         trainer.configure_seed_candidates(seed_candidates, seed_probabilities)
         trainer.train()
-        logger.info(f"evaluate: {trainer.evaluate()}")
+        if self.eval_dataset is not None:
+            logger.info(f"evaluate: {trainer.evaluate()}")
         # get directional derivative history
         return trainer.get_directional_derivative_history()
 
