@@ -88,16 +88,16 @@ class FedKSeedRunner(DefaultRunner):
             output_dir = "./"
 
         tokenizer = transformers.AutoTokenizer.from_pretrained(**self.data_collator_conf["kwargs"]["tokenizer_params"])
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.padding_side = "right"
 
         data_collator = transformers.DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
         dir_warning(self.training_args_conf)
+
         training_args = Seq2SeqTrainingArguments(**self.training_args_conf)
         self.training_args = training_args
         training_args.output_dir = output_dir
         fedkseed_args = FedKSeedTrainingArguments(**self.fed_args_conf)
-        training_args = Seq2SeqTrainingArguments(**self.training_args_conf)
+        logger.debug(f"training_args: {training_args}")
+        logger.debug(f"fedkseed_args: {fedkseed_args}")
         trainer = ClientTrainer(
             ctx=ctx,
             model=model,

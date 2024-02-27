@@ -17,6 +17,7 @@ import os
 from typing import Optional, Union, Sequence, Mapping, Dict
 
 from datasets import load_dataset, Features, Split, DownloadConfig, DownloadMode, VerificationMode, Version
+from transformers import AutoTokenizer
 
 from fate.ml.nn.dataset.base import Dataset
 
@@ -176,10 +177,7 @@ class Dolly15K(HuggingfaceDataset):
 
         dataset = dataset.map(_add_text)
 
-        from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(**self.tokenizer_params)
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.padding_side = "right"
 
         def tokenize_function(examples):
             return tokenizer(examples["text"], **self.tokenizer_apply_params)
