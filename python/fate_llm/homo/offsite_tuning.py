@@ -14,6 +14,8 @@ from transformers import TrainerState, TrainerControl, PreTrainedTokenizer
 from fate_llm.model_zoo.offsite_tuning.offsite_tuning_model import OffsiteTuningBaseModel
 import logging
 import torch
+import torch.distributed as dist
+from transformers.modeling_utils import unwrap_model
 
 
 logger = logging.getLogger(__name__)
@@ -66,15 +68,38 @@ class OffsiteTuningTrainerClient(Seq2SeqFedAVGClient):
         )
         self._aggregate_model = aggregate_model
 
+
+    def _share_model(self, model, args: Seq2SeqTrainingArguments, sync_trainable_only=True):
+
+        if args.local_rank == 0:
+            for p in model.parameters():
+                if (not sync_trainable_only) or (sync_trainable_only and p.requires_grad):
+                    scatter_list = [p.data for _ in range(args.world_size)]
+                    dist.scatter(p.data, scatter_list, async_op=False)
+        else:
+            for p in model.parameters():
+                if (not sync_trainable_only) or (sync_trainable_only and p.requires_grad):
+                    dist.scatter(p.data, src=0, async_op=False)
+
     def on_train_begin(self, ctx: Context, aggregator: Aggregator, fed_args: FedArguments, 
                        args: TrainingArguments, model: Module = None, optimizer: Optimizer = None, scheduler: _LRScheduler = None, 
                        dataloader: Tuple[DataLoader]= None, control: TrainerControl= None, 
                        state: TrainerState = None, **kwargs):
         
-        logger.info('receving weights from server')
-        parameters_to_get = ctx.arbiter.get('sub_model_para')
-        model.load_submodel_weights(parameters_to_get)
-        logger.info('received submodel weigths from the server')
+        if args.local_rank == 0: # master
+            logger.info('receving weights from server')
+            parameters_to_get = ctx.arbiter.get('sub_model_para')
+            model = unwrap_model(model)
+            model.load_submodel_weights(parameters_to_get)
+            logger.info('received submodel weigths from the server')
+            if args.world_size > 1:
+                self._share_model(model, args)
+                logger.info('sharing model parameters done')
+        else:
+            if args.world_size > 1:
+                model = unwrap_model(model)
+                self._share_model(model, args)
+                logger.info('sharing model parameters done')
 
     def on_federation(
         self,
@@ -98,10 +123,13 @@ class OffsiteTuningTrainerClient(Seq2SeqFedAVGClient):
                     args: TrainingArguments, model: OffsiteTuningBaseModel = None, optimizer: Optimizer = None, scheduler: _LRScheduler = None, 
                     dataloader: Tuple[DataLoader]= None, control: TrainerControl= None, 
                     state: TrainerState = None, **kwargs):
-        logger.info('receving weights from server')
-        return_weights = model.get_submodel_weights()
-        ctx.arbiter.put('trained_sub_model_para', return_weights)
-        logger.info('weights sent back to the server')
+
+        if args.local_rank == 0:
+            if args.world_size > 1:
+                model = unwrap_model(model)
+            return_weights = model.get_submodel_weights()
+            ctx.arbiter.put('trained_sub_model_para', return_weights)
+            logger.info('weights sent back to the server')
 
     def init_aggregator(self, ctx: Context, fed_args: FedArguments):
         if self._aggregate_model:
