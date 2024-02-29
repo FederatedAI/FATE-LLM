@@ -1,3 +1,11 @@
+## Release 2.0.0
+### Major Features and Improvements
+* Adapt to fate-v2.0 framework:
+  * Migrate parameter-efficient fine-tuning training methods and models. 
+  * Migrate Standard Offsite-Tuning and Extended Offsite-Tuning（Federated Offsite-Tuning+)
+  * Newly trainer，dataset, data_processing function design
+* New FedKSeed Federated Tuning Algorithm: train large language models in a federated learning setting with extremely low communication cost
+
 ## Release 1.3.0
 ### Major Features and Improvements
 * FTL-LLM（Fedrated Learning + Transfer Learning + LLM）
