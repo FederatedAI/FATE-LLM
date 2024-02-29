@@ -121,10 +121,10 @@ class PELLM(torch.nn.Module):
     def forward(self, *args, **kwargs):
         forward_ret = self._pe_lm.forward(*args, **kwargs)
 
-        if self.peft_config.task_type == TaskType.SEQ_CLS:
-            return forward_ret.logits
-        else:
+        if self.peft_config is None or self.peft_config.task_type != TaskType.SEQ_CLS:
             return forward_ret
+        else:
+            return forward_ret.logits
 
     def save_trainable(self, output_path):
         state_dict = {
