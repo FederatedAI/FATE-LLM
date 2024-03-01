@@ -10,9 +10,9 @@ from transformers import Trainer, TrainingArguments
 from transformers.optimization import get_scheduler, SchedulerType
 from transformers.trainer_callback import TrainerCallback
 
-from fate_llm.fedkseed.args import KSeedTrainingArguments
-from fate_llm.fedkseed.optimizer import KSeedZerothOrderOptimizer
-from fate_llm.fedkseed.pytorch_utils import get_optimizer_parameters_grouped_with_decay
+from fate_llm.homo.fedkseed.args import KSeedTrainingArguments
+from fate_llm.homo.fedkseed.optimizer import KSeedZerothOrderOptimizer
+from fate_llm.homo.fedkseed.pytorch_utils import get_optimizer_parameters_grouped_with_decay
 
 logger = logging.getLogger(__name__)
 
