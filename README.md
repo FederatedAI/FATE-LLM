@@ -17,7 +17,7 @@ FATE-LLM is a framework to support federated learning for large language models(
 
 ### Standalone deployment
 Please refer to [FATE-Standalone deployment](https://github.com/FederatedAI/FATE#standalone-deployment).  
-* To deploy FATE-LLM v2.0, deploy FATE-Standalone with version >= 2.1, then copy directory `python/fate_llm` to `{fate_install}/fate/python/fate_llm`
+* To deploy FATE-LLM v2.0, deploy FATE-Standalone with version >= 2.1, then make a new directory `{fate_install}/fate_llm` and clone the code into it, install the python requirements, and add `{fate_install}/fate_llm/python` to `PYTHONPATH` 
 * To deploy FATE-LLM v1.x, deploy FATE-Standalone with 1.11.3 <= version < 2.0, then copy directory `python/fate_llm` to `{fate_install}/fate/python/fate_llm` 
 
 ### Cluster deployment
