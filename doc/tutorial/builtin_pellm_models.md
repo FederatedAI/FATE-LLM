@@ -6,13 +6,12 @@ After reading the training tutorial above, it's easy to use other models listing
   
 
 | Model          | ModuleName        | ClassName     | DataSetName     | 
-| -------------- | ----------------- | --------------| --------------- |                 |
+| -------------- | ----------------- | --------------| --------------- |                 
 | Qwen2          | pellm.qwen        | Qwen          | prompt_dataset  |                              
 | Bloom-7B1      | pellm.bloom       | Bloom         | prompt_dataset  |                              
 | LLaMA-2-7B     | pellm.llama       | LLaMa         | prompt_dataset  |                              
 | LLaMA-7B       | pellm.llama       | LLaMa         | prompt_dataset  |                              
 | ChatGLM3-6B    | pellm.chatglm     | ChatGLM       | prompt_dataset  |                              
-| ChatGLM-6B     | pellm.chatglm     | ChatGLM       | prompt_dataset  |                              
 | GPT-2          | pellm.gpt2        | GPT2          | seq_cls_dataset |                              
 | ALBERT         | pellm.albert      | Albert        | seq_cls_dataset |                              
 | BART           | pellm.bart        | Bart          | seq_cls_dataset |                              
