@@ -6,7 +6,7 @@ After reading the training tutorial above, it's easy to use other models listing
   
 
 | Model          | ModuleName        | ClassName     | DataSetName     | 
-| -------------- | ----------------- | --------------| --------------- |                 |
+| -------------- | ----------------- | --------------| --------------- |                 
 | Qwen2          | pellm.qwen        | Qwen          | prompt_dataset  |                              
 | Bloom-7B1      | pellm.bloom       | Bloom         | prompt_dataset  |                              
 | LLaMA-2-7B     | pellm.llama       | LLaMa         | prompt_dataset  |                              
