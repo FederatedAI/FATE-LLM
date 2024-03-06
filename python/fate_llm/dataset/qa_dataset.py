@@ -17,7 +17,7 @@ from datasets import load_from_disk, load_dataset
 from transformers import AutoTokenizer
 import torch as t
 import os
-from federatedml.nn.dataset.base import Dataset
+from fate.ml.nn.dataset.base import Dataset
 
 
 """
@@ -39,6 +39,7 @@ class PIQA:
             gt_tuples = [("sol{}".format(label + 1), idx)
                          for idx, label in enumerate(examples['label'])]
             return [examples[k][i] for k, i in gt_tuples]
+
 
 class SciQ:
     def __init__(self):
@@ -191,3 +192,4 @@ class QaDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.ds[idx]
+    

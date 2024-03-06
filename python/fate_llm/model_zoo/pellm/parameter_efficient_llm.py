@@ -15,11 +15,15 @@
 #
 import peft
 import torch
-from peft import PeftModel
+from collections.abc import Mapping
+from peft import PeftModel, TaskType
 from transformers import AutoConfig
 from transformers import AutoModel
 from transformers.configuration_utils import PretrainedConfig
-from federatedml.util import LOGGER
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 AVAILABLE_PEFT_CONFIG = list(
@@ -32,13 +36,15 @@ AVAILABLE_PEFT_CONFIG = list(
 class PELLM(torch.nn.Module):
 
     config_class: PretrainedConfig = None
-    enable_save_pretrained: bool = True
     model_loader = None
 
-    def __init__(self, config: dict = None,
+    def __init__(self,
+                 config: dict = None,
                  pretrained_path: str = None,
                  peft_type: str = None,
-                 peft_config: dict = None,
+                 peft_config=None,
+                 torch_dtype: str = None,
+                 trust_remote_code: bool = False,
                  **kwargs
                  ) -> None:
 
@@ -48,6 +54,8 @@ class PELLM(torch.nn.Module):
         self.config_path = pretrained_path
         self.peft_type = peft_type
         self.peft_config = peft_config
+        self.torch_dtype = None if not torch_dtype else getattr(torch, torch_dtype)
+        self.trust_remote_code = trust_remote_code
 
         assert self.config_path is not None or self.config is not None, \
             "At least one of config_path and config must be set."
@@ -64,7 +72,7 @@ class PELLM(torch.nn.Module):
 
     def init_config(self, **kwargs):
         if self.config_path is not None:
-            self.config = AutoConfig.from_pretrained(self.config_path)
+            self.config = AutoConfig.from_pretrained(self.config_path, trust_remote_code=self.trust_remote_code)
         elif self.config is not None and self.config_class is not None:
             self.config = self.config_class().from_dict(self.config)
         else:
@@ -79,55 +87,50 @@ class PELLM(torch.nn.Module):
         model_loader = self.model_loader if self.model_loader is not None else AutoModel
         if self.config is not None:
             self._pe_lm = model_loader.from_pretrained(
-                self.config_path, config=self.config, **kwargs)
+                self.config_path, config=self.config,
+                torch_dtype=self.torch_dtype, **kwargs,
+                trust_remote_code=self.trust_remote_code
+            )
         elif self.config_path is not None:
             self._pe_lm = model_loader.from_pretrained(
-                self.config_path, **kwargs)
+                self.config_path, torch_dtype=self.torch_dtype,
+                trust_remote_code=self.trust_remote_code, **kwargs)
         else:
             raise ValueError(
                 'config_path to pretrained model folder cannot be None')
 
     def add_peft(self):
-        assert self.peft_type in AVAILABLE_PEFT_CONFIG, 'peft name {} not in availabe config {}'.format(
+        assert self.peft_type in AVAILABLE_PEFT_CONFIG, 'peft name {} not in available config {}'.format(
             self.peft_type, AVAILABLE_PEFT_CONFIG)
 
         if self.peft_config is None:
             peft_config = getattr(peft, self.peft_type)()
-        else:
+        elif isinstance(self.peft_config, dict):
             peft_config = getattr(peft, self.peft_type)(**self.peft_config)
+        else:
+            raise ValueError(f"Can not parse peft_config of {type(self.peft_config)}")
 
         self._pe_lm = peft.get_peft_model(self._pe_lm, peft_config)
+        self.peft_config = peft_config
 
     def model_summary(self):
-        try:
+        if hasattr(self._pe_lm, "print_trainable_parameters"):
             summary = self._pe_lm.print_trainable_parameters()
+            logger.debug(f'PELLM model summary: \n{summary}')
 
-            LOGGER.debug('PELLM model summary: \n{}'.format(summary))
-        except BaseException:
-            pass
+    def forward(self, *args, **kwargs):
+        forward_ret = self._pe_lm.forward(*args, **kwargs)
 
-    def _get_trainable_parameters(self):
-        trainable = []
-        for n, p in self._pe_lm.named_parameters():
-            if p.requires_grad:
-                trainable.append(p)
-        return trainable
+        if self.peft_config is None or self.peft_config.task_type != TaskType.SEQ_CLS:
+            return forward_ret
+        else:
+            return forward_ret.logits
 
-    def forward(self, tokenized_data: dict):
-        return self._pe_lm(**tokenized_data)
-
-    def save_pretrained(self, path):
-        if not self.enable_save_pretrained:
-            raise ValueError(
-                "To save trainable parameters only, set enable_save_pretrained=True in your model")
-
-        from pathlib import Path
-
+    def save_trainable(self, output_path):
         state_dict = {
             k: p.to("cpu") for k,
             p in self._pe_lm.named_parameters() if p.requires_grad}
-        Path.mkdir(Path(path), exist_ok=True)
-        torch.save(state_dict, Path(path).joinpath("adapter_model.bin"))
+        torch.save(state_dict, output_path)
 
 
 class AutoPELLM(PELLM):

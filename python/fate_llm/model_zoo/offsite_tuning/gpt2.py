@@ -15,9 +15,8 @@
 #
 from fate_llm.model_zoo.offsite_tuning.offsite_tuning_model import OffsiteTuningSubModel, OffsiteTuningMainModel, get_dropout_emulator_and_adapters, split_numpy_array, recover_numpy_array
 from transformers import GPT2LMHeadModel, GPT2Config
-from torch import nn
 import torch
-import torch as t
+from typing import Optional, Tuple
 
 
 class GPT2LMHeadMainModel(OffsiteTuningMainModel):
@@ -41,8 +40,37 @@ class GPT2LMHeadMainModel(OffsiteTuningMainModel):
     def get_model_transformer_blocks(self, model: GPT2LMHeadModel):
         return model.transformer.h
 
-    def forward(self, x):
-        return self.model(**x)
+    def forward(self,
+        input_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[Tuple[Tuple[torch.Tensor]]] = None,
+        attention_mask: Optional[torch.FloatTensor] = None,
+        token_type_ids: Optional[torch.LongTensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.FloatTensor] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+        encoder_attention_mask: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,):
+
+        return self.model(
+            input_ids=input_ids,
+            past_key_values=past_key_values,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=encoder_attention_mask,
+            labels=labels,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict)
 
     def get_additional_param_state_dict(self):
         # get parameter of additional parameter
@@ -86,6 +114,7 @@ class GPT2LMHeadMainModel(OffsiteTuningMainModel):
         new_submodel_weight['wpe'] = wpe
 
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
+
 
 class GPT2LMHeadSubModel(OffsiteTuningSubModel):
 
@@ -163,8 +192,37 @@ class GPT2LMHeadSubModel(OffsiteTuningSubModel):
 
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
-    def forward(self, x):
-        return self.model(**x)
+    def forward(self,
+        input_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[Tuple[Tuple[torch.Tensor]]] = None,
+        attention_mask: Optional[torch.FloatTensor] = None,
+        token_type_ids: Optional[torch.LongTensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.FloatTensor] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+        encoder_attention_mask: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,):
+
+        return self.model(
+            input_ids=input_ids,
+            past_key_values=past_key_values,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=encoder_attention_mask,
+            labels=labels,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict)
 
     def parameters(self, recurse=True):
         if self.partial_weight_decay is None:

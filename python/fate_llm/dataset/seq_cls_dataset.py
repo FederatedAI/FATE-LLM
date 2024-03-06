@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-from federatedml.nn.dataset.base import Dataset
+from fate.ml.nn.dataset.base import Dataset
 import pandas as pd
 import torch as t
 from transformers import AutoTokenizer
@@ -24,7 +24,7 @@ import numpy as np
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
-class TokenizerDataset(Dataset):
+class SeqCLSDataset(Dataset):
     """
     A Dataset for some basic NLP Tasks, this dataset will automatically transform raw text into word indices
     using AutoTokenizer from transformers library,
@@ -53,7 +53,7 @@ class TokenizerDataset(Dataset):
             pad_token=None,
             return_input_ids=True):
 
-        super(TokenizerDataset, self).__init__()
+        super(SeqCLSDataset, self).__init__()
         self.text = None
         self.word_idx = None
         self.label = None
