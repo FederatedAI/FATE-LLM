@@ -30,7 +30,7 @@ from typing import Literal
 import logging
 from fate.arch.dataframe import DataFrame
 from fate_llm.runner.homo_seq2seq_runner import Seq2SeqRunner, _check_instances
-from fate_llm.homo.offsite_tuning import OffsiteTuningTrainerClient, OffsiteTuningTrainerServer
+from python.fate_llm.homo.offsite_tuning.trainer import OffsiteTuningTrainerClient, OffsiteTuningTrainerServer
 
 
 logger = logging.getLogger(__name__)

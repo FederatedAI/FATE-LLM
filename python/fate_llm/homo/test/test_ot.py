@@ -16,7 +16,7 @@
 
 import sys
 from datetime import datetime
-from fate_llm.homo.offsite_tuning import OffsiteTuningTrainerClient, OffsiteTuningTrainerServer, TrainingArguments, FedArguments
+from python.fate_llm.homo.offsite_tuning.trainer import OffsiteTuningTrainerClient, OffsiteTuningTrainerServer, TrainingArguments, FedArguments
 from fate_llm.model_zoo.offsite_tuning.gpt2 import GPT2LMHeadMainModel, GPT2LMHeadSubModel
 from transformers import DataCollatorForSeq2Seq
 
