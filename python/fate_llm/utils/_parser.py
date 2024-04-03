@@ -21,12 +21,14 @@ from pathlib import Path
 
 
 class LlmJob(object):
-    def __init__(self, job_name: str, script_path: Path, conf_path: Path, pretrained_model_path: Path,
-                 peft_path: Path, eval_conf_path: Path, loader: str, loader_conf_path: Path,
-                 tasks: typing.List[str], include_path: Path):
+    def __init__(self, job_name: str, script_path: Path=None, conf_path: Path=None, model_task_name: str=None,
+                 pretrained_model_path: Path=None, peft_path: Path=None,
+                 eval_conf_path: Path=None, loader: str=None, loader_conf_path: Path=None,
+                 tasks: typing.List[str]=None, include_path: Path=None):
         self.job_name = job_name
         self.script_path = script_path
         self.conf_path = conf_path
+        self.model_task_name = model_task_name
         self.pretrained_model_path = pretrained_model_path
         self.peft_path = peft_path
         self.loader = loader
@@ -51,6 +53,7 @@ class LlmSuite(object):
     ):
         self.pairs = pairs
         self.path = path
+        self._final_status = {}
 
     @staticmethod
     def load(path: Path):
@@ -60,6 +63,7 @@ class LlmSuite(object):
             testsuite_config = yaml.safe_load(f)
 
         pairs = []
+        job_status = {}
         for pair_name, pair_configs in testsuite_config.items():
             jobs = []
             for job_name, job_configs in pair_configs.items():
@@ -71,6 +75,8 @@ class LlmSuite(object):
                 conf_path = job_configs.get("conf", None)
                 if conf_path and not os.path.isabs(conf_path):
                     conf_path = path.parent.joinpath(conf_path).resolve()
+
+                model_task_name = job_configs.get("model_task_name", None)
 
                 # evaluate only
                 pretrained_model_path = job_configs.get("pretrained", None)
@@ -100,6 +106,7 @@ class LlmSuite(object):
                 jobs.append(
                     LlmJob(
                         job_name=job_name, script_path=script_path, conf_path=conf_path,
+                        model_task_name=model_task_name,
                         pretrained_model_path=pretrained_model_path, peft_path=peft_path, eval_conf_path=eval_conf_path,
                         loader=loader, loader_conf_path=loader_conf_path, tasks=tasks, include_path=include_path
                     )
@@ -113,3 +120,13 @@ class LlmSuite(object):
         suite = LlmSuite(pairs=pairs, path=path)
         return suite
 
+    def update_status(
+            self, pair_name, job_name, job_id=None, status=None, exception_id=None, time_elapsed=None, event=None
+    ):
+        for k, v in locals().items():
+            if k != "job_name" and k != "pair_name" and v is not None:
+                if self._final_status.get("pair_name", {}).get("job_name"):
+                    setattr(self._final_status[f"{pair_name}-{job_name}"], k, v)
+
+    def get_final_status(self):
+        return self._final_status

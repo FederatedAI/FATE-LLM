@@ -57,17 +57,15 @@ def run_evaluate(ctx, include, eval_config, result_output, **kwargs):
     if not eval_config:
         eval_config = default_eval_config()
 
-    config = {}
-    if eval_config is not None:
-        with eval_config.open("r") as f:
-            config.update(yaml.safe_load(f))
-    eval_conf = config
+    eval_config_dict = {}
+    with eval_config.open("r") as f:
+        eval_config_dict.update(yaml.safe_load(f))
 
     if not yes and not click.confirm("running?"):
         return
     # init tasks
     init_tasks()
-    run_suite_eval(suite, eval_conf, result_output)
+    run_suite_eval(suite, eval_config_dict, result_output)
 
 
 def run_job_eval(job, eval_conf):
