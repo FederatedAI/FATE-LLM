@@ -73,8 +73,8 @@ def evaluate(tasks, model="hf", model_args=None, include_path=None, task_manager
         task_manager=task_manager,
         **kwargs
     )
-    result_table = lm_eval.utils.make_table(results)
     if show_result:
+        result_table = lm_eval.utils.make_table(results)
         print(result_table)
     return results
 
@@ -101,7 +101,7 @@ def aggregate_table(results):
 
         values = []
         task_results = dict()
-        print(f"pair results: {pair_results}")
+        # print(f"pair results: {pair_results}")
         for job_name, result_dict in pair_results.items():
             if "results" in result_dict and result_dict["results"]:
                 column = "results"
@@ -128,7 +128,7 @@ def aggregate_table(results):
                     task_results.setdefault(k, {}).setdefault(job_name, {})[m] = v
 
         # job names as columns
-        print(f"task results: {task_results}")
+        # print(f"task results: {task_results}")
         for task_name, task_result in task_results.items():
             metrics = {inner_key for inner_dict in task_result.values() for inner_key, value in inner_dict.items()}
             for metric in metrics:
