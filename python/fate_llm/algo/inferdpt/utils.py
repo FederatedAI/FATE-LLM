@@ -2,6 +2,8 @@ from decimal import getcontext
 from transformers import AutoTokenizer
 import numpy as np
 import json
+import tqdm
+from typing import List
 
 
 getcontext().prec = 100
@@ -27,8 +29,33 @@ def save_jsonl(filename, data):
             file.write('\n')
 
 
-def make_inferdpt_kit():
-    pass
+def create_sensitivity_of_embeddings(all_embedding_matrix):
+    n_dimensions = all_embedding_matrix.shape[1]
+    delta_f_new = np.zeros(n_dimensions)
+    for dim in tqdm.trange(n_dimensions):
+        dim_data = all_embedding_matrix[:, dim]
+        sorted_dim_data = np.sort(dim_data)
+        differences = sorted_dim_data[-1] - sorted_dim_data[0]
+        delta_f_new[dim] = differences
+    return delta_f_new
+
+
+def create_sorted_embedding_matrix(token_list, similarity_matrix):
+    token_2_sorted_distances = dict()
+    token_array = np.array(token_list)
+    for idx, token in tqdm.tqdm(enumerate(token_list)):
+        similarity_array = similarity_matrix[idx]
+        sorted_indices = np.argsort(similarity_array)[::-1]
+        token_2_sorted_distances[token] = [token_array[sorted_indices].tolist(), similarity_array[sorted_indices].tolist()]
+    return token_2_sorted_distances
+
+
+def cosine_similarity_vectors(A, B):
+    dot_product = np.dot(A, B)
+    norm_a = np.linalg.norm(A)
+    norm_b = np.linalg.norm(B)
+    similarity = dot_product / (norm_a * norm_b)
+    return similarity
 
 
 class InferDPTKit(object):
@@ -60,8 +87,25 @@ class InferDPTKit(object):
         self.tokenizer.save_pretrained(path+'/inferdpt_kit/tokenizer/')
 
     @staticmethod
-    def make_inferdpt_kit():
-        pass
+    def make_inferdpt_kit_param(embedding_matrix: np.ndarray, token_list: List[str]):
+        
+        def cosine_simi(embedding_matrix1, embedding_matrix2):
+            dot_product = np.dot(embedding_matrix1, embedding_matrix2.T)
+            norm_matrix1 = np.linalg.norm(embedding_matrix1, axis=1)
+            norm_matrix2 = np.linalg.norm(embedding_matrix2, axis=1)
+            similarity = dot_product / (np.outer(norm_matrix1, norm_matrix2))
+
+            return similarity
+        assert len(embedding_matrix) == len(token_list)
+        similarity_matrix = cosine_simi(embedding_matrix, embedding_matrix)
+        token_sorted_distance_dict = create_sorted_embedding_matrix(token_list, similarity_matrix)
+        delta_f_new = create_sensitivity_of_embeddings(embedding_matrix)
+
+        token_2_embedding = {}
+        for token, embedding in zip(token_list, embedding_matrix):
+            token_2_embedding[token] = embedding
+
+        return token_2_embedding, token_sorted_distance_dict, delta_f_new
 
     @staticmethod
     def load_from_path(path):
