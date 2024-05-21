@@ -24,7 +24,7 @@ class LlmJob(object):
     def __init__(self, job_name: str, script_path: Path=None, conf_path: Path=None, model_task_name: str=None,
                  pretrained_model_path: Path=None, peft_path: Path=None,
                  eval_conf_path: Path=None, loader: str=None, loader_conf_path: Path=None,
-                 tasks: typing.List[str]=None, include_path: Path=None):
+                 tasks: typing.List[str]=None, include_path: Path=None, peft_path_format: str=None):
         self.job_name = job_name
         self.script_path = script_path
         self.conf_path = conf_path
@@ -37,6 +37,7 @@ class LlmJob(object):
         self.tasks = tasks
         self.include_path = include_path
         self.evaluate_only = self.script_path is None
+        self.peft_path_format = peft_path_format
 
 
 class LlmPair(object):
@@ -103,12 +104,17 @@ class LlmSuite(object):
                 if include_path and not os.path.isabs(include_path):
                     include_path = path.parent.joinpath(job_configs["include_path"]).resolve()
 
+                peft_path_format = job_configs.get("peft_path_format", "{{fate_base}}/fate_flow/model/{{job_id}}/"
+                                                                       "guest/{{party_id}}/{{model_task_name}}/0/"
+                                                                       "output/output_model/model_directory")
+
                 jobs.append(
                     LlmJob(
                         job_name=job_name, script_path=script_path, conf_path=conf_path,
                         model_task_name=model_task_name,
                         pretrained_model_path=pretrained_model_path, peft_path=peft_path, eval_conf_path=eval_conf_path,
-                        loader=loader, loader_conf_path=loader_conf_path, tasks=tasks, include_path=include_path
+                        loader=loader, loader_conf_path=loader_conf_path, tasks=tasks, include_path=include_path,
+                        peft_path_format=peft_path_format
                     )
                 )
 

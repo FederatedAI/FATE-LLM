@@ -79,14 +79,19 @@ def run_job_eval(job, eval_conf):
             job_eval_conf.update(yaml.safe_load(f))
     # get loader
     if job.loader:
-        model = load_by_loader(loader_name=job.loader,
-                               loader_conf_path=loader_conf_path,
-                               peft_path=job.peft_path)
+        if job.peft_path:
+            model = load_by_loader(loader_name=job.loader,
+                                   loader_conf_path=loader_conf_path,
+                                   peft_path=job.peft_path)
+        else:
+            model = load_by_loader(loader_name=job.loader,
+                                   loader_conf_path=loader_conf_path)
         result = evaluate(model=model, tasks=job.tasks, include_path=job.include_path, **job_eval_conf)
     else:
         # feed in pretrained & peft path
         job_eval_conf["model_args"]["pretrained"] = job.pretrained_model_path
-        job_eval_conf["model_args"]["peft"] = job.peft_path
+        if job.peft_path:
+            job_eval_conf["model_args"]["peft"] = job.peft_path
         result = evaluate(tasks=job.tasks, include_path=job.include_path, **job_eval_conf)
     return result
 
