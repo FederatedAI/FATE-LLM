@@ -22,7 +22,7 @@ from fate.components.components.nn.nn_runner import (
 )
 from fate.components.components.nn.runner.homo_default_runner import DefaultRunner
 from fate.ml.nn.homo.fedavg import FedAVGArguments
-from fate_llm.homo.fedavg import Seq2SeqFedAVGClient, Seq2SeqFedAVGServer
+from fate_llm.algo.fedavg.fedavg import Seq2SeqFedAVGClient, Seq2SeqFedAVGServer
 from typing import Dict
 from fate.components.components.nn.loader import Loader
 import torch.nn as nn
@@ -34,8 +34,6 @@ from transformers.trainer_utils import get_last_checkpoint
 from typing import Literal
 import logging
 from fate.arch.dataframe import DataFrame
-from transformers.modeling_utils import PreTrainedModel, unwrap_model
-
 
 logger = logging.getLogger(__name__)
 

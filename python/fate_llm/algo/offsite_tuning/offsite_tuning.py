@@ -1,8 +1,6 @@
-from torch.nn.modules import Module
 from fate.ml.aggregator.base import Aggregator
-from fate_llm.homo.fedavg import Seq2SeqFedAVGClient, Seq2SeqFedAVGServer, Seq2SeqTrainingArguments
+from fate_llm.algo.fedavg.fedavg import Seq2SeqFedAVGClient, Seq2SeqFedAVGServer, Seq2SeqTrainingArguments
 from fate.ml.nn.trainer.trainer_base import FedArguments, TrainingArguments
-from dataclasses import dataclass
 from typing import List, Optional, Callable, Tuple
 from fate.arch import Context
 from torch.optim import Optimizer

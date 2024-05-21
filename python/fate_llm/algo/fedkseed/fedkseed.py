@@ -6,10 +6,10 @@ from typing import List, Mapping
 import torch
 from fate.arch.context import Context
 
-from fate_llm.fedkseed.pytorch_utils import get_optimizer_parameters_grouped_with_decay
-from fate_llm.fedkseed.trainer import KSeedZOExtendedTrainer
-from fate_llm.fedkseed.zo_utils import probability_from_amps, directional_derivative_step, get_even_seed_probabilities
-from fate_llm.fedkseed.args import KSeedTrainingArguments
+from fate_llm.algo.fedkseed.pytorch_utils import get_optimizer_parameters_grouped_with_decay
+from fate_llm.algo.fedkseed.trainer import KSeedZOExtendedTrainer
+from fate_llm.algo.fedkseed.zo_utils import probability_from_amps, directional_derivative_step, get_even_seed_probabilities
+from fate_llm.algo.fedkseed.args import KSeedTrainingArguments
 
 logger = logging.getLogger(__name__)
 
