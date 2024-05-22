@@ -64,7 +64,6 @@ class LlmSuite(object):
             testsuite_config = yaml.safe_load(f)
 
         pairs = []
-        job_status = {}
         for pair_name, pair_configs in testsuite_config.items():
             jobs = []
             for job_name, job_configs in pair_configs.items():
@@ -131,7 +130,7 @@ class LlmSuite(object):
     ):
         for k, v in locals().items():
             if k != "job_name" and k != "pair_name" and v is not None:
-                if self._final_status.get("pair_name", {}).get("job_name"):
+                if self._final_status.get(f"{pair_name}-{job_name}"):
                     setattr(self._final_status[f"{pair_name}-{job_name}"], k, v)
 
     def get_final_status(self):
