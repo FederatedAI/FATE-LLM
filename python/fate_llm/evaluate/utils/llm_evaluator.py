@@ -269,3 +269,22 @@ def init_tasks(root_path=None):
             raise ValueError(f"Cannot find task config {conf_path}, please check.")
         except Exception:
             raise ValueError(f"Initialization failed.")
+
+def download_task(tasks=None):
+    if tasks is None:
+        tasks = list(build_in_tasks.keys())
+    i = 1
+    if isinstance(tasks, str):
+        tasks = [tasks]
+    n = len(tasks)
+    for task in tasks:
+        task_obj = build_in_tasks.get(task)
+        if task_obj is None:
+            print(f"Task {task} not found in built-in tasks, please check.")
+            continue
+        result = task_obj.download_from_source()
+        if result:
+            print(f"Finish downloading {i}/{n} th task data: {task}, saved to {task_obj.task_scr_dir}.\n")
+        else:
+            print(f"Failed to download {i}/{n} th task data to {task_obj.task_scr_dir}.\n")
+        i += 1

@@ -21,12 +21,14 @@ import yaml
 from typing import Union
 from .eval_cli import run_evaluate
 from .config_cli import eval_config_group
+from .data_cli import download_data
 from ._options import LlmSharedOptions
 
 
 commands = {
     "evaluate": run_evaluate,
-    "config": eval_config_group
+    "config": eval_config_group,
+    "download": download_data
 }
 
 

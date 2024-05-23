@@ -35,6 +35,7 @@ class Task:
     _task_name = ""
     _task_dir = ""
     _task_conf_file = ""
+    _task_source_url = ""
     script_dir = os.path.dirname(__file__)
 
     @property
@@ -56,11 +57,46 @@ class Task:
     def task_conf_path(self):
         return os.path.abspath(os.path.join(self.script_dir, self._task_dir, self._task_conf_file))
 
+    @property
+    def task_source_url(self):
+        return self._task_source_url
+
+    def download_from_source(self):
+        raise NotImplementedError(f"Should not be called here.")
+
 
 class Dolly(Task):
     _task_name = "dolly-15k"
     _task_dir = "dolly_15k"
     _task_conf_file = "default_dolly_15k.yaml"
 
+    def download_from_source(self):
+        try:
+            from datasets import load_dataset
+            data = load_dataset("databricks/databricks-dolly-15k", split="train")
+            filename = os.path.join(self.task_scr_dir, "databricks-dolly-15k.jsonl")
+            data.to_json(filename)
+            return True
+        except Exception as e:
+            print(f"Failed to download data from source: {e}")
+            return False
 
-build_in_tasks = {"dolly-15k": Dolly()}
+
+class AdvertiseGen(Task):
+    _task_name = "advertise-gen"
+    _task_dir = "advertise_gen"
+    _task_conf_file = "advertise_gen"
+    _task_source_url = ["https://cloud.tsinghua.edu.cn/seafhttp/files/3781289a-5a60-44b1-b5f1-a04364e3eb9d/AdvertiseGen.tar.gz",
+                        "https://docs.google.com/uc?export=download&id=13_vf0xRTQsyneRKdD1bZIr93vBGOczrk"]
+
+    def download_from_source(self):
+        from ..utils.data_tools import download_data
+        result = download_data(self.task_scr_dir, self.task_source_url[0])
+        if not result:
+            print(f"retry with address: {self.task_source_url[1]}")
+            return download_data(self.task_scr_dir, self.task_source_url[1])
+        return result
+
+
+build_in_tasks = {"dolly-15k": Dolly(),
+                  "advertise-gen": AdvertiseGen()}
