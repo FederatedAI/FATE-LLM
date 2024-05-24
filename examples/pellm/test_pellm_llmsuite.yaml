@@ -1,12 +1,12 @@
 hetero_nn_sshe_binary_0:
   bloom_lora:
-    pretrained: "/data/cephfs/llm/models/bloom-560m"
+    pretrained: "bloom-560m"
     script: "./test_bloom_lora.py"
     conf: "./bloom_lora_config.yaml"
     peft_path_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory"
     tasks:
       - "dolly-15k"
   bloom_zero_shot:
-    pretrained: "/data/cephfs/llm/models/bloom-560m"
+    pretrained: "bloom-560m"
     tasks:
       - "dolly-15k"

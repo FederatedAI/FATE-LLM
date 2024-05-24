@@ -32,7 +32,7 @@ from ..utils._parser import LlmSuite
 @click.option('-i', '--include', required=True, type=click.Path(exists=True),
               help='Path to model and metrics conf')
 @click.option('-c', '--eval-config', type=click.Path(exists=True), help='Path to FATE Llm evaluation config. '
-                                                        'If none, use default config.')
+                                                                        'If not provided, use default config.')
 @click.option('-o', '--result-output', type=click.Path(),
               help='Path to save evaluation results.')
 # @click.argument('other_args', nargs=-1)
