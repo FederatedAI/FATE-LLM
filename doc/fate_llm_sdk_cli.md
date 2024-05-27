@@ -1,8 +1,30 @@
+## FATE-Llm Python SDK
 
-## FATE-Llm Command
+FATE-Llm Python SDK provides simple API for evaluating large language models with few lines of code.
+Evaluation of models from Huggingface and local-built models, as one of FATE-Llm models, are supported. Built-in datasets currently include Dolly-15k and Advertise Generation.
+Below shows how to evaluate given llm model in few lines. For quick single-model evaluation, below steps should suffice, however, if comparative evaluation among multiple models is desired, CLI is recommended.
+
+```python
+    from lm_eval.models.huggingface import HFLM
+    from fate_llm.evaluate.utils import llm_evaluator
+    
+    # download data for built-in tasks if running fate-llm evaluation for the first time 
+    # alternatively, use CLI `fate-llm data download` to download data
+    llm_evaluator.download_task("dolly-15k")
+    # set paths of built-in tasks
+    llm_evaluator.init_tasks()
+    # load model
+    gpt2_lm = HFLM(pretrained='bloom-560m')
+    # if loading local model, specify peft storage location
+    # gpt2_lm = HFLM(pretrained='bloom-560m', peft_path_format="path/to/peft")
+    # run evaluation
+    llm_evaluator.evaluate(model=gpt2_lm, tasks="dolly-15k")
+```
+
+## FATE-Llm Command Line Interface
 
 FATE Llm provides built-in tasks for comparing evaluation results of different llm models. 
-Altenatively, user may provide arbitrary tasks for evaluation.
+Alternatively, user may provide arbitrary tasks for evaluation.
 
 ### command options
 
