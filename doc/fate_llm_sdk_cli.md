@@ -18,7 +18,7 @@ Below shows how to evaluate given llm model in few lines. For quick single-model
     # if loading local model, specify peft storage location
     # gpt2_lm = HFLM(pretrained='bloom-560m', peft_path_format="path/to/peft")
     # run evaluation
-    llm_evaluator.evaluate(model=gpt2_lm, tasks="dolly-15k")
+    llm_evaluator.evaluate(model=gpt2_lm, tasks="dolly-15k", show_result=True)
 ```
 
 ## FATE-Llm Command Line Interface
