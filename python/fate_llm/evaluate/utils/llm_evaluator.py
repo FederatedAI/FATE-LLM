@@ -61,10 +61,11 @@ def evaluate(tasks, model="hf", model_args=None, include_path=None, task_manager
         for task in tasks:
             if isinstance(task, str):
                 task_names.append(task)
+            else:
+                raise ValueError(f"tasks: {task}  of type {type(task)} not valid, please check.")
+
     else:
-        pass
-    # todo: add processing for Task object
-    # print(f"task names: {task_names}")
+        raise ValueError(f"tasks: {tasks}  of type {type(tasks)} not valid, please check.")
 
     results = lm_eval.simple_evaluate(
         model=model,
@@ -255,7 +256,7 @@ def init_tasks(root_path=None):
                         new_conf_path = os.path.join(parent_path, data_files)
                     task_template["dataset_kwargs"]["data_files"] = new_conf_path
             elif isinstance(data_files, dict):
-                for k, v in data_files:
+                for k, v in data_files.items():
                     if root_path:
                         parent_dir = os.path.basename(parent_path)
                         new_conf_path = os.path.join(root_path, parent_dir, os.path.basename(conf_path))

@@ -85,7 +85,7 @@ class Dolly(Task):
 class AdvertiseGen(Task):
     _task_name = "advertise-gen"
     _task_dir = "advertise_gen"
-    _task_conf_file = "advertise_gen"
+    _task_conf_file = "default_advertise_gen.yaml"
     _task_source_url = ["https://cloud.tsinghua.edu.cn/seafhttp/files/3781289a-5a60-44b1-b5f1-a04364e3eb9d/AdvertiseGen.tar.gz",
                         "https://docs.google.com/uc?export=download&id=13_vf0xRTQsyneRKdD1bZIr93vBGOczrk"]
 
