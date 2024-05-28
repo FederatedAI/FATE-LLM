@@ -142,3 +142,14 @@ A FATE-Llm testsuite includes the following elements:
         tasks:
           - "dolly-15k"
   ```
+  
+## Built-in Tasks
+
+Currently we include the following tasks in FATE-Llm Evaluate:
+
+| Task Name |     Alias     | Task Type  | Metric  |                                  source                                   |
+|:---------:|:-------------:|:----------:|:-------:|:-------------------------------------------------------------------------:|
+| Dolly-15k |   dolly-15k   | generation | rouge-L |  [link](https://huggingface.co/datasets/databricks/databricks-dolly-15k)  |
+|   ADGEN   | advertise-gen | generation | rouge-L |                                 [link](https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/README_en.md#instructions)                                  |
+
+Use corresponding alias to reference tasks in the system.
