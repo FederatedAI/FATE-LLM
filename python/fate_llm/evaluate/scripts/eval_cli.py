@@ -72,7 +72,6 @@ def run_job_eval(job, eval_conf):
     job_eval_conf = {}
     job_eval_conf.update(eval_conf)
 
-    echo.echo(f"evaluating llm job: {job.job_name}", fg='red')
     if job.eval_conf_path:
         # job-level eval conf takes priority
         with open(job.eval_conf_path, 'r') as f:
