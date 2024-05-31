@@ -28,3 +28,9 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 - [Federated ChatGLM-6B Training](./doc/tutorial/parameter_efficient_llm/ChatGLM-6B_ds.ipynb)
 - [GPT-2 Training](./doc/tutorial/parameter_efficient_llm/GPT2-example.ipynb)
 - [Builtin Models In PELLM](./doc/tutorial/builtin_models.md)
+
+
+## FATE-LLM Evaluation
+
+### Introduction
+- [FATE-LLM Evaluation](./doc/fate_llm_evaluation.md)
