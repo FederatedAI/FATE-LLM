@@ -7,7 +7,7 @@ Below shows how to evaluate given llm model in few lines. For quick single-model
 ```python
     from lm_eval.models.huggingface import HFLM
     from fate_llm.evaluate.utils import llm_evaluator
-    
+
     # download data for built-in tasks if running fate-llm evaluation for the first time 
     # alternatively, use CLI `fate-llm data download` to download data
     llm_evaluator.download_task("dolly-15k")
@@ -145,7 +145,7 @@ A FATE-Llm testsuite includes the following elements:
   
 ## Built-in Tasks
 
-Currently we include the following tasks in FATE-Llm Evaluate:
+Currently, we include the following tasks in FATE-Llm Evaluate:
 
 | Task Name |     Alias     | Task Type  | Metric  |                                  source                                   |
 |:---------:|:-------------:|:----------:|:-------:|:-------------------------------------------------------------------------:|

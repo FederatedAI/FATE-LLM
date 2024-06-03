@@ -44,7 +44,7 @@ def run_evaluate(ctx, include, eval_config, result_output, **kwargs):
     """
     ctx.obj.update(**kwargs)
     ctx.obj.post_process()
-    namespace = ctx.obj["namespace"]
+    # namespace = ctx.obj["namespace"]
     yes = ctx.obj["yes"]
 
     echo.echo(f"include: {include}", fg='red')
@@ -57,21 +57,28 @@ def run_evaluate(ctx, include, eval_config, result_output, **kwargs):
     if not eval_config:
         eval_config = default_eval_config()
 
-    eval_config_dict = {}
+    """eval_config_dict = {}
     with eval_config.open("r") as f:
-        eval_config_dict.update(yaml.safe_load(f))
+        eval_config_dict.update(yaml.safe_load(f))"""
+    if not os.path.exists(eval_config):
+        eval_config = None
 
     if not yes and not click.confirm("running?"):
         return
     # init tasks
     init_tasks()
-    run_suite_eval(suite, eval_config_dict, result_output)
-
+    # run_suite_eval(suite, eval_config_dict, result_output)
+    run_suite_eval(suite, eval_config, result_output)
 
 def run_job_eval(job, eval_conf):
     job_eval_conf = {}
-    job_eval_conf.update(eval_conf)
+    if isinstance(eval_conf, dict):
+        job_eval_conf.update(eval_conf)
+    elif eval_conf is not None and os.path.exists(eval_conf):
+        with open(eval_conf, 'r') as f:
+            job_eval_conf.update(yaml.safe_load(f))
 
+    echo.echo(f"Evaluating job: {job.job_name} with tasks: {job.tasks}")
     if job.eval_conf_path:
         # job-level eval conf takes priority
         with open(job.eval_conf_path, 'r') as f:
