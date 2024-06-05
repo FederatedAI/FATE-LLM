@@ -78,7 +78,7 @@ def run_job_eval(job, eval_conf):
         with open(eval_conf, 'r') as f:
             job_eval_conf.update(yaml.safe_load(f))
 
-    echo.echo(f"Evaluating job: {job.job_name} with tasks: {job.tasks}")
+    # echo.echo(f"Evaluating job: {job.job_name} with tasks: {job.tasks}")
     if job.eval_conf_path:
         # job-level eval conf takes priority
         with open(job.eval_conf_path, 'r') as f:
@@ -111,6 +111,7 @@ def run_suite_eval(suite, eval_conf, output_path=None):
                 # give warning that job will be skipped
                 warnings.warn(f"Job {job.job_name} will be skipped since no pretrained model is provided")
                 continue
+            echo.echo(f"Evaluating job: {job.job_name} with tasks: {job.tasks}")
             result = run_job_eval(job, eval_conf)
             job_results[job.job_name] = result
         suite_results[pair.pair_name] = job_results

@@ -38,16 +38,16 @@ fate_llm --help
 1. in:
 
    ```bash
-   fate_llm evaluate -i <path1 contains *.yaml>
+   fate_llm evaluate -i <path1 to *.yaml>
    ```
 
-   will run llm testsuite in
+   will run llm at
    *path1*
 
 2. eval-config:
 
     ```bash
-    fate_llm evaluate -i <path1 contains *.yaml> -c <path2>
+    fate_llm evaluate -i <path1 to *.yaml> -c <path2>
     ```
   
 
