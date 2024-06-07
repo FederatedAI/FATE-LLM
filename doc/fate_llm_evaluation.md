@@ -1,7 +1,7 @@
 ## FATE-Llm Python SDK
 
 FATE-Llm Python SDK provides simple API for evaluating large language models with few lines of code.
-Evaluation of models from Huggingface and local-built models, as one of FATE-Llm models, are supported. Built-in datasets currently include Dolly-15k and Advertise Generation.
+Evaluation of models from Huggingface and local-built models, as well as FATE-Llm models, are supported. Built-in datasets currently include Dolly-15k and Advertise Generation.
 Below shows how to evaluate given llm model in few lines. For quick single-model evaluation, below steps should suffice, however, if comparative evaluation among multiple models is desired, CLI is recommended.
 
 ```python
@@ -14,11 +14,24 @@ Below shows how to evaluate given llm model in few lines. For quick single-model
     # set paths of built-in tasks
     llm_evaluator.init_tasks()
     # load model
-    gpt2_lm = HFLM(pretrained='bloom-560m')
+    bloom_lm = HFLM(pretrained='bloom-560')
     # if loading local model, specify peft storage location
     # gpt2_lm = HFLM(pretrained='bloom-560m', peft_path_format="path/to/peft")
     # run evaluation
-    llm_evaluator.evaluate(model=gpt2_lm, tasks="dolly-15k", show_result=True)
+    llm_evaluator.evaluate(model=bloom_lm, tasks="dolly-15k", show_result=True)
+```
+
+When network allows, or if already cached, tasks from lm-evaluation may be provided for evaluation in similar style.
+
+```python
+    from lm_eval.models.huggingface import HFLM
+    from fate_llm.evaluate.utils import llm_evaluator
+    # load model
+    bloom_lm = HFLM(pretrained='bloom-560')
+    # if loading local model, specify peft storage location
+    # bloom_lm = HFLM(pretrained='bloom-560m', peft_path_format="path/to/peft")
+    # run evaluation
+    llm_evaluator.evaluate(model=gpt2_lm, tasks="ceval", show_result=True)
 ```
 
 ## FATE-Llm Command Line Interface
@@ -136,7 +149,7 @@ A FATE-Llm testsuite includes the following elements:
 - llm suite
 
   ```yaml
-     hetero_nn_sshe_binary_0:
+     bloom_suite:
       bloom_zero_shot:
         pretrained: "bloom-560m"
         tasks:

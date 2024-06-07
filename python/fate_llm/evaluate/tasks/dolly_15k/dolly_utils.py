@@ -2,7 +2,6 @@
 
 
 from rouge_score import rouge_scorer
-# from multiprocessing import Pool
 
 
 def rouge_l(predictions, references, use_stemmer=False):
@@ -12,19 +11,8 @@ def rouge_l(predictions, references, use_stemmer=False):
         score = scorer.score(ref, pred)
         scores.append(score)
 
-    # result = {}
-    # for key in scores[0]:
-    #    result[key] = [score[key] for score in scores]
-    # rouge_l_score = result['rougeL']
     rouge_l_score = scores[0]['rougeL'].fmeasure
     return rouge_l_score
-
-
-"""def aggregation(scores):
-    print(scores)
-    all_fmeasure = [s.fmeasure for s in scores]
-    print(all_fmeasure)
-    return sum(all_fmeasure) / len(all_fmeasure)"""
 
 def doc_to_text(doc):
     if doc["context"]:

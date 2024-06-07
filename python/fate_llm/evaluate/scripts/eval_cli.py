@@ -57,9 +57,6 @@ def run_evaluate(ctx, include, eval_config, result_output, **kwargs):
     if not eval_config:
         eval_config = default_eval_config()
 
-    """eval_config_dict = {}
-    with eval_config.open("r") as f:
-        eval_config_dict.update(yaml.safe_load(f))"""
     if not os.path.exists(eval_config):
         eval_config = None
 
