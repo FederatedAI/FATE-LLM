@@ -7,7 +7,7 @@ entry_points = {"console_scripts": ["fate_llm = fate_llm.evaluate.scripts.fate_l
 
 setup(
     name='fate_llm',
-    version='2.2.0',
+    version='2.1.0',
     packages=packages,
     entry_points=entry_points
 )
