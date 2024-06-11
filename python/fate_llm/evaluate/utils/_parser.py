@@ -66,6 +66,8 @@ class LlmSuite(object):
 
         pairs = []
         for pair_name, pair_configs in testsuite_config.items():
+            if pair_name == "data":
+                continue
             jobs = []
             for job_name, job_configs in pair_configs.items():
                 # with train
