@@ -17,6 +17,7 @@ from fate_llm.model_zoo.offsite_tuning.offsite_tuning_model import OffsiteTuning
 from transformers.models.bloom.modeling_bloom import BloomForCausalLM, BloomModel, BloomConfig
 from torch import nn
 import torch
+from typing import Optional, Tuple
 
 
 class BloomMainModel(OffsiteTuningMainModel):
@@ -39,9 +40,6 @@ class BloomMainModel(OffsiteTuningMainModel):
 
     def get_model_transformer_blocks(self, model: BloomForCausalLM):
         return model.transformer.h
-
-    def forward(self, x):
-        return self.model(**x)
 
     def get_additional_param_state_dict(self):
         # get parameter of additional parameter
@@ -79,8 +77,34 @@ class BloomMainModel(OffsiteTuningMainModel):
         new_submodel_weight['wte'] = wte
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
-    def forward(self, x):
-        return self.model(**x)
+    def forward(
+        self,
+        input_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], ...]] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        inputs_embeds: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+        **deprecated_arguments,
+    ):
+
+        return self.model(
+            input_ids,
+            past_key_values,
+            attention_mask,
+            head_mask,
+            inputs_embeds,
+            labels,
+            use_cache,
+            output_attentions,
+            output_hidden_states,
+            return_dict,
+            **deprecated_arguments,
+        )
 
 
 class BloomSubModel(OffsiteTuningSubModel):
@@ -105,10 +129,6 @@ class BloomSubModel(OffsiteTuningSubModel):
             fp16_mix_precision)
         self.partial_weight_decay = partial_weight_decay
 
-        # import torch as t
-        # state_dict = t.load('/data/projects/fate/cwj/shortcut_bloom.pkl')
-        # self.load_state_dict(state_dict)
-
     def get_base_model(self):
         total_layer_num = self.emulator_layer_num + \
             self.adapter_top_layer_num + self.adapter_bottom_layer_num
@@ -119,9 +139,6 @@ class BloomSubModel(OffsiteTuningSubModel):
 
     def get_model_transformer_blocks(self, model: BloomForCausalLM):
         return model.transformer.h
-
-    def forward(self, x):
-        return self.model(**x)
 
     def get_additional_param_state_dict(self):
         # get parameter of additional parameter
@@ -159,8 +176,34 @@ class BloomSubModel(OffsiteTuningSubModel):
         new_submodel_weight['wte'] = wte
         self.load_numpy_state_dict(param_dict, new_submodel_weight)
 
-    def forward(self, x):
-        return self.model(**x)
+    def forward(
+        self,
+        input_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], ...]] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        inputs_embeds: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+        **deprecated_arguments,
+    ):
+
+        return self.model(
+            input_ids,
+            past_key_values,
+            attention_mask,
+            head_mask,
+            inputs_embeds,
+            labels,
+            use_cache,
+            output_attentions,
+            output_hidden_states,
+            return_dict,
+            **deprecated_arguments,
+        )
 
     def parameters(self, recurse=True):
         if self.partial_weight_decay is None:

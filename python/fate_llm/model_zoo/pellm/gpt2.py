@@ -22,7 +22,8 @@ class GPT2(PELLM):
     config_class = GPT2Config
     model_loader = GPT2ForSequenceClassification
 
-    def __init__(self, config: dict = None,
+    def __init__(self,
+                 config: dict = None,
                  pretrained_path: str = None,
                  peft_type: str = None,
                  peft_config: dict = None,

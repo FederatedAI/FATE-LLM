@@ -15,10 +15,11 @@
 #
 import torch as t
 from torch import nn
-from federatedml.util import LOGGER
 from transformers import AutoModel
 import numpy as np
+import logging
 
+logger = logging.getLogger(__name__)
 
 
 def get_dropout_emulator_and_adapters(
@@ -48,7 +49,7 @@ def get_dropout_emulator_and_adapters(
         idx = int(round(i * stride))
         layer_idx.append(idx)
         emulator.append(kept_layers[idx])
-    LOGGER.info(
+    logger.info(
         'take layer {} of the original model as the emulator'.format(
             t.Tensor(layer_idx) +
             bottom_idx))

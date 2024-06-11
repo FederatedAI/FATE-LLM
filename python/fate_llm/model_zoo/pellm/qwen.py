@@ -13,15 +13,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-from transformers import BloomConfig
-from transformers import BloomForCausalLM
+from transformers import Qwen2Config
+from transformers import Qwen2ForCausalLM
 from fate_llm.model_zoo.pellm.parameter_efficient_llm import PELLM
 
 
-class Bloom(PELLM):
+class Qwen(PELLM):
 
-    config_class = BloomConfig
-    model_loader = BloomForCausalLM
+    config_class = Qwen2Config
+    model_loader = Qwen2ForCausalLM
 
     def __init__(self, config: dict = None,
                  pretrained_path: str = None,
@@ -31,6 +31,6 @@ class Bloom(PELLM):
                  ) -> None:
 
         if config is None and pretrained_path is None:
-            config = BloomConfig().to_dict()  # use default model setting
+            config = Qwen2Config().to_dict()  # use default model setting
         super().__init__(config=config, pretrained_path=pretrained_path,
                          peft_type=peft_type, peft_config=peft_config, **kwargs)
