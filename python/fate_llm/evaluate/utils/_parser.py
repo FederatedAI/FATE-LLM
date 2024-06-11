@@ -50,10 +50,11 @@ class LlmPair(object):
 
 class LlmSuite(object):
     def __init__(
-            self, pairs: typing.List[LlmPair], path: Path
+            self, pairs: typing.List[LlmPair], path: Path, dataset=None
     ):
         self.pairs = pairs
         self.path = path
+        self.dataset = dataset
         self._final_status = {}
 
     @staticmethod
