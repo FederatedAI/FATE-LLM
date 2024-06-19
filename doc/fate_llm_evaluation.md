@@ -1,7 +1,8 @@
 ## FATE-Llm Python SDK
 
-FATE-Llm Python SDK provides simple API for evaluating large language models with few lines of code.
-Evaluation of models from Huggingface and local-built models, as well as FATE-Llm models, are supported. Built-in datasets currently include Dolly-15k and Advertise Generation.
+FATE-Llm Python SDK provides simple API for evaluating large language models.
+Built on [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/), our evaluation tool may be used on pre-trained models from Huggingface, local-built models, as well as FATE-Llm models. 
+[Built-in datasets](#built-in-tasks) currently include Dolly-15k and Advertise Generation.
 Below shows how to evaluate given llm model in few lines. For quick single-model evaluation, below steps should suffice, however, if comparative evaluation among multiple models is desired, CLI is recommended.
 
 ```python
