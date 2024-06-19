@@ -82,8 +82,8 @@ def evaluate(tasks, model="hf", model_args=None, include_path=None, task_manager
 
 def aggregate_table(results):
     """
-    adapted from lm_eval.utils.make_table
-    Aggregate results from different models with same tasks
+    adapted from lm_eval.utils.make_table:
+    https://github.com/EleutherAI/lm-evaluation-harness/blob/v0.4.2/lm_eval/utils.py    Aggregate results from different models with same tasks
     Parameters
     ----------
     results: dict, results from different models
