@@ -15,14 +15,12 @@
 #
 from datasets import load_from_disk, load_dataset
 from transformers import AutoTokenizer
-import torch as t
-import os
 from fate.ml.nn.dataset.base import Dataset
-
 
 """
 These Data pre-processing templates are from https://github.com/mit-han-lab/offsite-tuning
 """
+
 
 class PIQA:
     def __init__(self):
@@ -68,21 +66,124 @@ class OpenBookQA:
         return targets
 
 
+class ARC:
+    def __init__(self):
+        self._template = "Question: {}\nAnswer:"
+
+    def get_context(self, examples):
+        ctx = examples['question']
+        return [self._template.format(c) for c in ctx]
+
+    def get_target(self, examples):
+        choices = examples['choices']
+        answers = examples['answerKey']
+        num_to_letter = {"1": "A", "2": "B", "3": "C", "4": "D", "5": "E"}
+        for idx, answer in enumerate(answers):
+            answer = num_to_letter.get(answer, answer)
+            answer = ord(answer) - ord("A")
+            answers[idx] = choices[idx]["text"][answer]
+        return answers
+
+
+class WIC:
+    def __init__(self):
+        self._template = "Sentence 1: {}\nSentence 2: {}\nQuestion: Is the word '{}' used in the same way in the" \
+                         " two sentences above?\nAnswer:"
+
+    def get_context(self, examples):
+        sentences_1 = examples["sentence1"]
+        sentences_2 = examples["sentence2"]
+        starts_1 = examples["start1"]
+        ends_1 = examples["end1"]
+
+        contexts = []
+        for s1, s2, st, ed in zip(sentences_1, sentences_2, starts_1, ends_1):
+            contexts.append(
+                self._template.format(s1, s2, s1[st: ed])
+            )
+
+        return contexts
+
+    def get_target(self, examples):
+        labels = examples["label"]
+        targets = []
+        for label in labels:
+            targets.append(" {}".format({0: "no", 1: "yes"}[label]))
+
+        return targets
+
+
+class BoolQ:
+    def __init__(self):
+        self._template = "{}\nQuestion: {}?\nAnswer:"
+
+    def get_context(self, examples):
+        passages = examples["passage"]
+        questions = examples["question"]
+        return [self._template.format(passage, question)
+                for passage, question in zip(passages, questions)
+                ]
+
+    def get_target(self, examples):
+        return [" " + "yes" if label else "no" for label in examples["answer"]]
+
+class CommonsenseQA:
+    def get_context(self, examples):
+        return examples["question"]
+
+    def get_target(self, examples):
+        choices = examples['choices']
+        answers = examples['answerKey']
+        targets = []
+        for choice, answer in zip(choices, answers):
+            answer = ord(answer.strip()) - ord('A')
+            targets.append(choice['text'][answer])
+        return targets
+
+
+class RTE:
+    def __init__(self):
+        self._template = "{}\nQuestion: {} True or False?\nAnswer:"
+
+    def get_context(self, examples):
+        sentences_1 = examples["premise"]
+        sentences_2 = examples["hypothesis"]
+        contexts = []
+        for sentence_1, sentence_2 in zip(sentences_1, sentences_2):
+            contexts.append(
+                self._template.format(sentence_1, sentence_2)
+            )
+
+        return contexts
+
+    def get_target(self, examples):
+        labels = examples["label"]
+        return [" {}".format({0: "True", 1: "False"}[label]) for label in labels]
+
+
 task_dict = {
     "piqa": PIQA(),
     "sciq": SciQ(),
-    "openbookqa": OpenBookQA()
+    "openbookqa": OpenBookQA(),
+    "arc_easy": ARC(),
+    "arc_challenge": ARC(),
+    "wic": WIC(),
+    "boolq": BoolQ(),
+    "commonsenseqa": CommonsenseQA(),
+    "rte": RTE()
 }
 
 
-def tokenize_qa_dataset(dataset_name, tokenizer, save_path, seq_max_len=1000):
-
+def tokenize_qa_dataset(dataset_name, tokenizer, save_path=None, seq_max_len=1000, data_part="train", dataset=None):
     max_len = seq_max_len
-    assert dataset_name in ['piqa', 'sciq', 'openbookqa'], "dataset name must be one of ['piqa', 'sciq', 'openbookqa']"
-    raw_datasets = load_dataset(dataset_name) 
+    assert dataset_name in task_dict.keys(), f"dataset name must be one of {list(task_dict.keys())}"
+    if dataset is None:
+        raw_datasets = load_dataset(dataset_name)
+    else:
+        raw_datasets = dataset
     task = task_dict[dataset_name]
 
-    column_names = raw_datasets["train"].column_names
+    column_names = raw_datasets[data_part].column_names
 
     def tokenize_function(examples):
         context = task.get_context(examples)
@@ -95,7 +196,7 @@ def tokenize_qa_dataset(dataset_name, tokenizer, save_path, seq_max_len=1000):
         if len(context['input_ids'][0]) > 0 and context['input_ids'][0][-1] in tokenizer.all_special_ids:
             context['input_ids'] = [i[:-1] for i in context['input_ids']]
             context['attention_mask'] = [a[:-1]
-                                            for a in context['attention_mask']]
+                                         for a in context['attention_mask']]
 
         # if target is starting with special token, remove it
         if len(target['input_ids'][0]) > 0 and target['input_ids'][0][0] in tokenizer.all_special_ids:
@@ -105,9 +206,9 @@ def tokenize_qa_dataset(dataset_name, tokenizer, save_path, seq_max_len=1000):
 
         out = {}
         out['input_ids'] = [i1 + i2 for i1,
-                            i2 in zip(context['input_ids'], target['input_ids'])]
+                                        i2 in zip(context['input_ids'], target['input_ids'])]
         out['attention_mask'] = [a1 + a2 for a1,
-                                    a2 in zip(context['attention_mask'], target['attention_mask'])]
+                                             a2 in zip(context['attention_mask'], target['attention_mask'])]
 
         # set -100 for context tokens
         out["labels"] = [
@@ -116,9 +217,9 @@ def tokenize_qa_dataset(dataset_name, tokenizer, save_path, seq_max_len=1000):
         return out
 
     tokenized_datasets = raw_datasets.map(
-            tokenize_function,
-            batched=True,
-        num_proc=32,
+        tokenize_function,
+        batched=True,
+        num_proc=4,
         remove_columns=column_names,
         load_from_cache_file=True,
         desc="Running tokenizer on dataset",
@@ -138,49 +239,74 @@ def tokenize_qa_dataset(dataset_name, tokenizer, save_path, seq_max_len=1000):
 
     def pad_function(examples):
         examples["input_ids"] = [i + [tokenizer.pad_token_id] *
-                                    (max_length - len(i)) for i in examples["input_ids"]]
+                                 (max_length - len(i)) for i in examples["input_ids"]]
         examples["attention_mask"] = [[1] * len(i) + [0] *
-                                        (max_length - len(i)) for i in examples["attention_mask"]]
+                                      (max_length - len(i)) for i in examples["attention_mask"]]
         examples["labels"] = [i + [-100] *
-                                (max_length - len(i)) for i in examples["labels"]]
+                              (max_length - len(i)) for i in examples["labels"]]
         # truncate to max_length
         examples["input_ids"] = [i[:max_length] for i in examples["input_ids"]]
         examples["attention_mask"] = [a[:max_length]
-                                        for a in examples["attention_mask"]]
+                                      for a in examples["attention_mask"]]
         examples["labels"] = [l[:max_length] for l in examples["labels"]]
         return examples
 
-
     tokenized_datasets = tokenized_datasets.map(
-            pad_function,
-            batched=True,
-            num_proc=32,
-            load_from_cache_file=True,
-            desc=f"Padding dataset to max length {max_length}",
-        )
+        pad_function,
+        batched=True,
+        num_proc=4,
+        load_from_cache_file=True,
+        desc=f"Padding dataset to max length {max_length}",
+    )
 
-    tokenized_datasets.save_to_disk(save_path)
+    if save_path is not None:
+        tokenized_datasets.save_to_disk(save_path)
+
     return tokenized_datasets
 
 
 class QaDataset(Dataset):
 
-    def __init__(self, tokenizer_name_or_path, select_num=None, start_idx=None):
+    def __init__(self,
+                 tokenizer_name_or_path,
+                 select_num=None,
+                 start_idx=None,
+                 need_preprocess=False,
+                 dataset_name=None,
+                 data_part="train",
+                 seq_max_len=1000
+                 ):
         self.select_num = select_num
         self.start_idx = start_idx
         self.ds = None
-        if 'llama' in tokenizer_name_or_path:
-            self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path, unk_token="<unk>",  bos_token="<s>", eos_token="</s>", add_eos_token=True)   
+        self.need_preprocess = need_preprocess
+        self.dataset_name = dataset_name
+        self.data_part = data_part
+        self.seq_max_len = seq_max_len
+        if 'llama' in tokenizer_name_or_path.lower():
+            self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path, unk_token="<unk>", bos_token="<s>",
+                                                           eos_token="</s>", add_eos_token=True)
             self.tokenizer.pad_token = self.tokenizer.eos_token
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
-        if 'gpt2' in tokenizer_name_or_path:
+        if 'gpt2' in tokenizer_name_or_path.lower():
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        
 
     def load(self, path):
-        loaded = load_from_disk(path)
-        self.ds = loaded['train']
+        local_data = load_from_disk(path)
+        if not self.need_preprocess:
+            self.ds = local_data[self.data_part]
+        else:
+            tokenized_ds = tokenize_qa_dataset(
+                dataset_name=self.dataset_name,
+                tokenizer=self.tokenizer,
+                seq_max_len=self.seq_max_len,
+                data_part=self.data_part,
+                dataset=local_data
+            )
+
+            self.ds = tokenized_ds[self.data_part]
+
         if self.select_num is not None:
             if self.start_idx is not None:
                 self.ds = self.ds.select(range(self.start_idx, min(len(self.ds), self.start_idx + self.select_num)))
@@ -192,4 +318,3 @@ class QaDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.ds[idx]
-    
