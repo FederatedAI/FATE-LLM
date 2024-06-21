@@ -16,7 +16,7 @@
 import os
 from typing import Optional, Union, Sequence, Mapping, Dict
 
-from datasets import load_dataset, Features, Split, DownloadConfig, DownloadMode, VerificationMode, Version
+from datasets import load_dataset, Features, Split, DownloadConfig, DownloadMode, VerificationMode, Version, load_from_disk
 from transformers import AutoTokenizer
 
 from fate.ml.nn.dataset.base import Dataset
@@ -54,6 +54,9 @@ class HuggingfaceDataset(Dataset):
             trust_remote_code: bool = None,
             tokenizer_params: Optional[Dict] = None,
             tokenizer_apply_params: Optional[Dict] = None,
+            load_from_disk: Optional[bool] = False,
+            inplace_load: Optional[bool] = True,
+            data_split_key: Optional[str] = None,
             **config_kwargs,
     ):
         self.name = name
@@ -79,18 +82,43 @@ class HuggingfaceDataset(Dataset):
         self.tokenizer_params = tokenizer_params
         self.tokenizer_apply_params = tokenizer_apply_params
         self.config_kwargs = config_kwargs
+        self.load_from_disk = load_from_disk
+        self.inplace_load = inplace_load
+        self.data_split_key = data_split_key
+        self.ds = None
 
         super(HuggingfaceDataset, self).__init__()
 
     def load(self, file_path):
-        return load_dataset(path=file_path, name=self.name, data_dir=self.data_dir, data_files=self.data_files,
-                            split=self.split, cache_dir=self.cache_dir, features=self.features,
-                            download_config=self.download_config, download_mode=self.download_mode,
-                            verification_mode=self.verification_mode, ignore_verifications=self.ignore_verifications,
-                            keep_in_memory=self.keep_in_memory, save_infos=self.save_infos, revision=self.revision,
-                            token=self.token, use_auth_token=self.use_auth_token, task=self.task,
-                            streaming=self.streaming, num_proc=self.num_proc, storage_options=self.storage_options,
-                            trust_remote_code=self.trust_remote_code, **self.config_kwargs)
+        if not self.load_from_disk:
+            ds = load_dataset(path=file_path, name=self.name, data_dir=self.data_dir, data_files=self.data_files,
+                                split=self.split, cache_dir=self.cache_dir, features=self.features,
+                                download_config=self.download_config, download_mode=self.download_mode,
+                                verification_mode=self.verification_mode, ignore_verifications=self.ignore_verifications,
+                                keep_in_memory=self.keep_in_memory, save_infos=self.save_infos, revision=self.revision,
+                                token=self.token, use_auth_token=self.use_auth_token, task=self.task,
+                                streaming=self.streaming, num_proc=self.num_proc, storage_options=self.storage_options,
+                                trust_remote_code=self.trust_remote_code, **self.config_kwargs)
+        else:
+            ds = load_from_disk(file_path)
+
+        if self.data_split_key is not None:
+            ds = ds[self.data_split_key]
+
+        if self.inplace_load:
+            self.ds = ds
+        else:
+            return ds
+
+    def __getitem__(self, idx):
+        if self.ds is None:
+            raise ValueError('Dataset is not loaded')
+        return self.ds[idx]
+
+    def __len__(self):
+        if self.ds is None:
+            raise ValueError('Dataset is not loaded')
+        return len(self.ds)
 
 
 class Dolly15K(HuggingfaceDataset):
@@ -145,6 +173,7 @@ class Dolly15K(HuggingfaceDataset):
 
     def __init__(self, *args, **kwargs):
         super(Dolly15K, self).__init__(*args, **kwargs)
+        self.inplace_load = False
 
     def load(self, file_path):
         dataset = super().load(file_path)

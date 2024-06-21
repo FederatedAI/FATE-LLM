@@ -130,7 +130,7 @@ class HomoSeq2SeqTrainerClient(Seq2SeqTrainer, HomoTrainerMixin):
                 checkpoint_folder = get_ith_checkpoint(checkpoint_path, self._args.checkpoint_idx)
                 self._args.resume_from_checkpoint = os.path.join(checkpoint_path, checkpoint_folder)
 
-        Trainer.__init__(
+        Seq2SeqTrainer.__init__(
             self,
             model=model,
             args=self._args,

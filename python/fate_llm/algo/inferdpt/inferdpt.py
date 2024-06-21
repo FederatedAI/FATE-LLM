@@ -2,27 +2,30 @@ import copy
 from jinja2 import Template
 from tqdm import tqdm
 from fate.arch import Context
-from typing import List, Dict, Any
+from typing import List, Dict, Union
 from fate.ml.nn.dataset.base import Dataset
 from fate_llm.algo.inferdpt.utils import InferDPTKit
 from openai import OpenAI
 import logging
 from fate_llm.algo.inferdpt.inference.inference_base import Inference
+from fate_llm.algo.inferdpt._encode_decode import EncoderDecoder
+from fate_llm.dataset.hf_dataset import HuggingfaceDataset
 
 
 logger = logging.getLogger(__name__)
 
 
-class InferDPTClient(object):
+class InferDPTClient(EncoderDecoder):
 
-    def __init__(self, ctx: Context, inferdpt_pertub_kit: InferDPTKit, local_inference_inst: Inference, epsilon=1.0) -> None:
+    def __init__(self, ctx: Context, inferdpt_pertub_kit: InferDPTKit, local_inference_inst: Inference,  epsilon: float = 3.0,) -> None:
         self.ctx = ctx
         self.kit = inferdpt_pertub_kit
+        assert epsilon > 0, 'epsilon must be a float > 0'
         self.ep = epsilon
         self.comm_idx = 0
         self.local_inference_inst = local_inference_inst
 
-    def perturb_doc(self, docs: List[Dict[str, Any]], format_template: str = None, verbose=False) -> List[Dict[str, Any]]:
+    def encode(self, docs: List[Dict[str, str]], format_template: str = None, verbose=False, perturb_doc_key: str ='perturbed_doc') -> List[Dict[str, str]]:
         
         copy_docs = copy.deepcopy(docs)
         if format_template is not None:
@@ -36,13 +39,18 @@ class InferDPTClient(object):
             else:
                 rendered_doc = template.render(**doc)
                 if verbose:
-                    logger.debug('doc to pertube {}'.format(rendered_doc))
+                    logger.debug('doc to perturb {}'.format(rendered_doc))
             p_doc = self.kit.perturb(rendered_doc, self.ep)
-            doc['perturbed_doc'] = p_doc
+            doc[perturb_doc_key] = p_doc
 
         return copy_docs
-    
-    def inference(self, docs: List[Dict[str, Any]], inference_kwargs: dict = {}, format_template: str = None, verbose=False) -> List[Dict[str, Any]]:
+        
+    def _remote_inference(self, docs: List[Dict[str, str]], 
+                     inference_kwargs: dict = {},
+                     format_template: str = None, 
+                     perturbed_response_key: str = 'perturbed_response',
+                     verbose=False
+                     ) -> List[Dict[str, str]]:
 
         copy_docs = copy.deepcopy(docs)
         if format_template is not None:
@@ -64,38 +72,62 @@ class InferDPTClient(object):
             
         self.ctx.arbiter.put('client_data_{}'.format(self.comm_idx), (infer_docs, inference_kwargs))
         perturb_resp = self.ctx.arbiter.get('pdoc_{}'.format(self.comm_idx))
-        for pr, doc in zip(perturb_resp, copy_docs):
-             doc['perturbed_response'] = pr
         self.comm_idx += 1
+        for pr, doc in zip(perturb_resp, copy_docs):
+             doc[perturbed_response_key] = pr
+
         return copy_docs
 
-    def predict(self, docs: List[Dict[str, Any]],
+    def decode(self, p_docs: List[Dict[str, str]], instruction_template: str = None, decode_template: str = None, verbose=False, 
+                     perturbed_response_key: str = 'perturbed_response', result_key: str = 'inferdpt_result',
+                     remote_inference_kwargs: dict = {}, local_inference_kwargs: dict = {}):
+
+        # inference using remote large models
+        docs_with_infer_result = self._remote_inference(p_docs, format_template=instruction_template, verbose=verbose, inference_kwargs=remote_inference_kwargs, perturbed_response_key=perturbed_response_key)
+        if decode_template is not None:
+            dt = Template(decode_template)
+            doc_to_decode = [dt.render(**i) for i in docs_with_infer_result]
+        else:
+            doc_to_decode = [str(i) for i in docs_with_infer_result]
+        # local model decode
+        final_result = self.local_inference_inst.inference(doc_to_decode, local_inference_kwargs)
+        for final_r, d in zip(final_result, docs_with_infer_result):
+            d[result_key] = final_r
+
+        return docs_with_infer_result
+
+    def inference(self, docs: Union[List[Dict[str, str]], HuggingfaceDataset],
                 doc_template: str,
                 instruction_template: str,
                 decode_template: str,
                 verbose: bool = False,
                 remote_inference_kwargs: dict = {},
                 local_inference_kwargs: dict = {},
-                ) -> List[Dict[str, Any]]:
+                perturb_doc_key: str = 'perturbed_doc',
+                perturbed_response_key: str = 'perturbed_response',
+                result_key: str = 'inferdpt_result',
+                ) -> List[Dict[str, str]]:
         
-        assert isinstance(docs, list) and isinstance(docs[0], dict), 'Input doc must be a list of dict'
+        assert (isinstance(docs, list) and isinstance(docs[0], dict)) or isinstance(docs, HuggingfaceDataset), 'Input doc must be a list of dict or HuggingfaceDataset'
         # perturb doc
-        docs_with_p = self.perturb_doc(docs, format_template=doc_template, verbose=verbose)
-        logger.info('perturb doc done')
+        if isinstance(docs, HuggingfaceDataset):
+            docs = [docs[i] for i in range(len(docs))]
+        docs_with_p = self.encode(docs, format_template=doc_template, verbose=verbose, perturb_doc_key=perturb_doc_key)
+        logger.info('encode done')
         # inference using perturbed doc
-        docs_with_infer_result = self.inference(docs_with_p, format_template=instruction_template, verbose=verbose, inference_kwargs=remote_inference_kwargs)
-        logger.info('inferdpt remote inference done')
-        # decode/generate final response using local model
-        if decode_template is not None:
-            dt = Template(decode_template)
-            doc_to_decode = [dt.render(**i) for i in docs_with_infer_result]
-        else:
-            doc_to_decode = [str(i) for i in docs_with_infer_result]
-        final_result = self.local_inference_inst.inference(doc_to_decode, local_inference_kwargs)
-        logger.info('local decode/generate done')
-        for final_r, d in zip(final_result, docs_with_infer_result):
-            d['result'] = final_r
-        return docs_with_infer_result
+        final_result = self.decode(
+            docs_with_p,
+            instruction_template,
+            decode_template,
+            verbose,
+            perturbed_response_key,
+            result_key,
+            remote_inference_kwargs,
+            local_inference_kwargs,
+        )
+        logger.info('decode done')
+        
+        return final_result
 
 
 class InferDPTServer(object):
