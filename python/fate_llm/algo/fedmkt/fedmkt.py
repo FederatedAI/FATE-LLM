@@ -80,6 +80,11 @@ class FedMKTTrainingArguments(Seq2SeqTrainingArguments):
     """
     post_fedavg: bool = field(default=False)
 
+    """
+    slm training only
+    """
+    llm_training: bool = field(default=True)
+
     def to_dict(self):
         return super(FedMKTTrainingArguments, self).to_dict()
 
@@ -105,6 +110,8 @@ class FedMKTTrainingArguments(Seq2SeqTrainingArguments):
         args_dict.pop("vocab_size", None)
 
         args_dict.pop("post_fedavg")
+
+        args_dict.pop("llm_training", True)
 
         return args_dict
 
@@ -214,6 +221,7 @@ class FedMKTSLM(FedMKTBase):
     def train(self):
         global_epochs = self.training_args.global_epochs
 
+        llm_pub_logits = None
         for i, iter_ctx in self.ctx.on_iterations.ctxs_range(global_epochs):
             logger.info(f"begin {i}-th global kd process")
             priv_data_training_args = self._get_priv_data_training_args()
@@ -248,10 +256,12 @@ class FedMKTSLM(FedMKTBase):
                            "data_collator": transformers.DataCollatorForSeq2Seq(self.tokenizer)}
             )
 
-            logger.debug(f"send {i}-th public logits to llm")
-            iter_ctx.arbiter.put("slm_pub_logits", slm_pub_logits.to_dict())
+            if self.training_args.llm_training:
+                logger.debug(f"send {i}-th public logits to llm")
+                iter_ctx.arbiter.put("slm_pub_logits", slm_pub_logits.to_dict())
 
-            llm_pub_logits = datasets.Dataset.from_dict(iter_ctx.arbiter.get("llm_pub_logits"))
+            if self.training_args.llm_training or not i:
+                llm_pub_logits = datasets.Dataset.from_dict(iter_ctx.arbiter.get("llm_pub_logits"))
 
             logger.info(f"begin {i}-th token alignment process")
             aligned_dataset = token_align(
@@ -271,7 +281,7 @@ class FedMKTSLM(FedMKTBase):
             self.model = unwrap_model(fedmkt_trainer.model)
 
             if self.training_args.post_fedavg and (i + 1) % self.fed_args.aggregate_freq == 0:
-                self.aggregator.model_aggregate(iter_ctx, self.model)
+                self.aggregator.model_aggregation(iter_ctx, self.model)
 
     def _init_trainer_for_distill(self, train_set):
         public_data_training_args = self._get_pub_data_kd_training_args()
@@ -391,6 +401,9 @@ class FedMKTLLM(FedMKTBase):
         )
 
     def on_epoch_begin(self, iter_ctx, epoch_idx, previous_pub_dataset):
+        if not self.training_args.llm_training:
+            return
+
         if previous_pub_dataset is None:
             llm_pub_logits = self.generate_pub_data_logits(first_epoch=True if not epoch_idx else False)
         else:
@@ -418,13 +431,15 @@ class FedMKTLLM(FedMKTBase):
 
         return aligned_dataset
 
-    def on_epoch_end(self, iter_ctx, cur_epoch):
-        llm_pub_logits = self.generate_pub_data_logits()
-        iter_ctx.guest.put("llm_pub_logits", llm_pub_logits.to_dict())
-        if len(self.slm_tokenizers) > 1:
-            iter_ctx.hosts.put("llm_pub_logits", llm_pub_logits.to_dict())
+    def on_epoch_end(self, iter_ctx, epoch_idx):
+        llm_pub_logits = self.generate_pub_data_logits(first_epoch=True)
 
-        if self.training_args.post_fedavg and (cur_epoch + 1) % self.fed_args.aggregate_freq == 0:
+        if self.training_args.llm_training or epoch_idx == 0:
+            iter_ctx.guest.put("llm_pub_logits", llm_pub_logits.to_dict())
+            if len(self.slm_tokenizers) > 1:
+                iter_ctx.hosts.put("llm_pub_logits", llm_pub_logits.to_dict())
+
+        if self.training_args.post_fedavg and (epoch_idx + 1) % self.fed_args.aggregate_freq == 0:
             self.aggregator.model_aggregation(iter_ctx)
 
         return llm_pub_logits
@@ -443,29 +458,30 @@ class FedMKTLLM(FedMKTBase):
             logger.info(f"begin {i}-th global kd process")
 
             aligend_train_set = self.on_epoch_begin(iter_ctx, i, previous_pub_logits)
+            if self.training_args.llm_training:
 
-            public_data_training_args = self._get_pub_data_kd_training_args()
-            fedmkt_trainer = FedMKTTrainer(
-                model=self.model,
-                tokenizer=self.tokenizer,
-                args=public_data_training_args,
-                train_dataset=aligend_train_set,
-                eval_dataset=self.val_set,
-                data_collator=DataCollatorForFedMKT(
-                    self.tokenizer,
-                    padding="max_length",
-                    max_length=max(len(d["input_ids"]) for d in aligend_train_set),
+                public_data_training_args = self._get_pub_data_kd_training_args()
+                fedmkt_trainer = FedMKTTrainer(
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                    args=public_data_training_args,
+                    train_dataset=aligend_train_set,
+                    eval_dataset=self.val_set,
+                    data_collator=DataCollatorForFedMKT(
+                        self.tokenizer,
+                        padding="max_length",
+                        max_length=max(len(d["input_ids"]) for d in aligend_train_set),
+                        blending_num=len(self.slm_tokenizers),
+                        vocab_size=self.training_args.vocab_size,
+                        dtype=next(self.model.parameters()).dtype
+                    ),
                     blending_num=len(self.slm_tokenizers),
-                    vocab_size=self.training_args.vocab_size,
-                    dtype=next(self.model.parameters()).dtype
-                ),
-                blending_num=len(self.slm_tokenizers),
-                lm_loss_weight=self.training_args.kd_alpha,
-                distill_loss_type=self.training_args.distill_loss_type,
-                distill_strategy=self.training_args.distill_strategy
-            )
+                    lm_loss_weight=self.training_args.kd_alpha,
+                    distill_loss_type=self.training_args.distill_loss_type,
+                    distill_strategy=self.training_args.distill_strategy
+                )
 
-            fedmkt_trainer.train()
-            self.model = unwrap_model(fedmkt_trainer.model)
+                fedmkt_trainer.train()
+                self.model = unwrap_model(fedmkt_trainer.model)
 
-            previous_pub_logits = self.on_epoch_end(iter_ctx, cur_epoch=i)
+            self.on_epoch_end(iter_ctx, i)
