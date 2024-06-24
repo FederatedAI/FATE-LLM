@@ -157,7 +157,8 @@ class FedMKTRunner(DefaultRunner):
             val_set=validate_dataset,
             tokenizer=tokenizer,
             slm_tokenizers=slm_tokenizers,
-            slm_to_llm_vocab_mappings=slm_to_llm_vocab_mappings
+            slm_to_llm_vocab_mappings=slm_to_llm_vocab_mappings,
+            save_trainable_weights_only=self.save_trainable_weights_only,
         )
 
         return trainer
@@ -191,7 +192,7 @@ class FedMKTRunner(DefaultRunner):
             priv_train_set=priv_dataset,
             val_set=validate_dataset,
             tokenizer=tokenizer,
-            save_trainable_weights_only=True,
+            save_trainable_weights_only=self.save_trainable_weights_only,
             llm_tokenizer=llm_tokenizer,
             llm_to_slm_vocab_mapping=vocab_mapping,
             data_collator=priv_data_collator
@@ -217,12 +218,6 @@ class FedMKTRunner(DefaultRunner):
             trainer.train()
 
         self.trainer = trainer
-
-        if self.is_server():
-            """
-            modify if server support saving models
-            """
-            return
 
         if self.training_args.deepspeed and self.training_args.local_rank != 0:
             pass
