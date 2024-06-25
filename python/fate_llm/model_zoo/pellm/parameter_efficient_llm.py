@@ -127,10 +127,7 @@ class PELLM(torch.nn.Module):
             return forward_ret.logits
 
     def save_trainable(self, output_path):
-        state_dict = {
-            k: p.to("cpu") for k,
-            p in self._pe_lm.named_parameters() if p.requires_grad}
-        torch.save(state_dict, output_path)
+        self._pe_lm.save_pretrained(output_path)
 
 
 class AutoPELLM(PELLM):
