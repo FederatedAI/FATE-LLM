@@ -130,7 +130,7 @@ class HomoSeq2SeqTrainerClient(Seq2SeqTrainer, HomoTrainerMixin):
                 checkpoint_folder = get_ith_checkpoint(checkpoint_path, self._args.checkpoint_idx)
                 self._args.resume_from_checkpoint = os.path.join(checkpoint_path, checkpoint_folder)
 
-        Seq2SeqTrainer.__init__(
+        Trainer.__init__(
             self,
             model=model,
             args=self._args,
@@ -156,7 +156,7 @@ class HomoSeq2SeqTrainerClient(Seq2SeqTrainer, HomoTrainerMixin):
             model = unwrap_model(self.model)
 
             if hasattr(model, "save_trainable"):
-                model.save_trainable(os.path.join(output_dir, TRAINABLE_WEIGHTS_NAME))
+                model.save_trainable(output_dir)
             else:
                 state_dict = {
                     k: p.to("cpu") for k,

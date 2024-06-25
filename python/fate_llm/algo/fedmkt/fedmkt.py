@@ -36,6 +36,7 @@ from fate_llm.algo.fedmkt.utils.generate_logit_utils import generate_pub_data_lo
 from fate.ml.aggregator import AggregatorClientWrapper, AggregatorServerWrapper
 from fate_llm.algo.fedmkt.fedmkt_trainer import FedMKTTrainer
 from fate_llm.algo.fedmkt.fedmkt_data_collator import DataCollatorForFedMKT
+from fate_llm.algo.fedmkt.utils.dataset_sync_util import sync_dataset
 
 
 logger = logging.getLogger(__name__)
@@ -86,10 +87,21 @@ class FedMKTTrainingArguments(Seq2SeqTrainingArguments):
     llm_training: bool = field(default=True)
 
     def to_dict(self):
-        return super(FedMKTTrainingArguments, self).to_dict()
+        from dataclasses import fields
+        from enum import Enum
+        d = {field.name: getattr(self, field.name) for field in fields(self) if field.init}
+
+        for k, v in d.items():
+            if isinstance(v, Enum):
+                d[k] = v.value
+            if isinstance(v, list) and len(v) > 0 and isinstance(v[0], Enum):
+                d[k] = [x.value for x in v]
+            if k.endswith("_token"):
+                d[k] = f"<{k.upper()}>"
+        return d
 
     def to_dict_without_extra_args(self):
-        args_dict = super().to_dict()
+        args_dict = self.to_dict()
         args_dict.pop("metric_type")
         args_dict.pop("top_k_logits_keep")
         args_dict.pop("top_k_strategy")
@@ -160,8 +172,6 @@ class FedMKTBase(object):
                 }
 
                 torch.save(state_dict, output_dir + '/pytorch_model.bin')
-
-
 
 
 class FedMKTSLM(FedMKTBase):
@@ -245,23 +255,43 @@ class FedMKTSLM(FedMKTBase):
             self.model = unwrap_model(priv_trainer.model)
 
             logger.info(f"begin {i}-th public logits generation process")
-            slm_pub_logits = self.pub_train_set.map(
-                generate_pub_data_logits,
-                batched=True,
-                batch_size=self.training_args.per_device_train_batch_size,
-                num_proc=None,
-                load_from_cache_file=True,
-                fn_kwargs={"model": self.model,
-                           "training_args": self.training_args,
-                           "data_collator": transformers.DataCollatorForSeq2Seq(self.tokenizer)}
-            )
 
-            if self.training_args.llm_training:
-                logger.debug(f"send {i}-th public logits to llm")
-                iter_ctx.arbiter.put("slm_pub_logits", slm_pub_logits.to_dict())
+            if self.training_args.world_size <= 1 or self.training_args.local_rank == 0:
+                slm_pub_logits = self.pub_train_set.map(
+                    generate_pub_data_logits,
+                    batched=True,
+                    batch_size=self.training_args.per_device_train_batch_size,
+                    num_proc=None,
+                    load_from_cache_file=True,
+                    fn_kwargs={"model": self.model,
+                               "training_args": self.training_args,
+                               "data_collator": transformers.DataCollatorForSeq2Seq(self.tokenizer)}
+                )
 
-            if self.training_args.llm_training or not i:
-                llm_pub_logits = datasets.Dataset.from_dict(iter_ctx.arbiter.get("llm_pub_logits"))
+                if self.training_args.world_size > 1:
+                    logger.info("sync slm_pub_logits")
+                    sync_dataset(
+                        slm_pub_logits, self.training_args.local_rank, self.training_args.world_size, self.training_args.device
+                    )
+
+                if self.training_args.llm_training:
+                    logger.debug(f"send {i}-th public logits to llm")
+                    iter_ctx.arbiter.put("slm_pub_logits", slm_pub_logits.to_dict())
+
+                if self.training_args.llm_training or not i:
+                    llm_pub_logits = datasets.Dataset.from_dict(iter_ctx.arbiter.get("llm_pub_logits"))
+                    if self.training_args.world_size > 1:
+                        logger.info("sync llm_pub_logits")
+                        sync_dataset(llm_pub_logits, self.training_args.local_rank,
+                                     self.training_args.world_size, self.training_args.device)
+            else:
+                slm_pub_logits = sync_dataset(
+                    None, self.training_args.local_rank, self.training_args.world_size, self.training_args.device
+                )
+
+                if self.training_args.llm_training or not i:
+                    llm_pub_logits = sync_dataset(None, self.training_args.local_rank,
+                                                  self.training_args.world_size, self.training_args.device)
 
             logger.info(f"begin {i}-th token alignment process")
             aligned_dataset = token_align(
@@ -401,20 +431,43 @@ class FedMKTLLM(FedMKTBase):
         )
 
     def on_epoch_begin(self, iter_ctx, epoch_idx, previous_pub_dataset):
+        logger.info(f"on {epoch_idx}-epoch begin")
         if not self.training_args.llm_training:
             return
 
         if previous_pub_dataset is None:
-            llm_pub_logits = self.generate_pub_data_logits(first_epoch=True if not epoch_idx else False)
+            if self.training_args.world_size <= 1 or self.training_args.local_rank == 0:
+                llm_pub_logits = self.generate_pub_data_logits(first_epoch=True if not epoch_idx else False)
+                if self.training_args.world_size > 1:
+                    sync_dataset(llm_pub_logits, self.training_args.local_rank,
+                                 self.training_args.world_size, self.training_args.device)
+            else:
+                llm_pub_logits = sync_dataset(None, self.training_args.local_rank,
+                                              self.training_args.world_size, self.training_args.device)
         else:
             llm_pub_logits = previous_pub_dataset
 
         slm_pub_logits_list = list()
-        slm_pub_logits_list.append(datasets.Dataset.from_dict(iter_ctx.guest.get('slm_pub_logits')))
-        if any(p.role == 'host' for p in self.ctx.parties):
-            slm_pub_logits_list.extend(
-                datasets.Dataset.from_dict(client_logits) for client_logits in iter_ctx.hosts.get("slm_pub_logits")
-            )
+        if self.training_args.world_size <= 1 or self.training_args.local_rank == 0:
+            slm_pub_logits_list.append(datasets.Dataset.from_dict(iter_ctx.guest.get('slm_pub_logits')))
+            if any(p.role == 'host' for p in self.ctx.parties):
+                slm_pub_logits_list.extend(
+                    datasets.Dataset.from_dict(client_logits) for client_logits in iter_ctx.hosts.get("slm_pub_logits")
+                )
+            if self.training_args.world_size > 1:
+                logger.info("sync dataset to other rank")
+                for slm_pub_logits in slm_pub_logits_list:
+                    sync_dataset(slm_pub_logits, self.training_args.local_rank,
+                                 self.training_args.world_size, self.training_args.device)
+                    logger.info("end to sync")
+        else:
+            logger.info("sync dataset from rank 0")
+            for _ in range(len(self.slm_tokenizers)):
+                slm_pub_logits_list.append(
+                    sync_dataset(None, self.training_args.local_rank,
+                                 self.training_args.world_size, self.training_args.device)
+                )
+            logger.info("end to sync dataset from rank 0")
 
         aligned_dataset = llm_pub_logits
         for idx, slm_pub_logits in enumerate(slm_pub_logits_list):
@@ -432,15 +485,28 @@ class FedMKTLLM(FedMKTBase):
         return aligned_dataset
 
     def on_epoch_end(self, iter_ctx, epoch_idx):
-        llm_pub_logits = self.generate_pub_data_logits(first_epoch=True)
+        logger.info(f"on {epoch_idx}-epoch end")
+        if not self.training_args.llm_training and epoch_idx > 1:
+            return
 
-        if self.training_args.llm_training or epoch_idx == 0:
+        llm_pub_logits = self.generate_pub_data_logits(first_epoch=True if not self.training_args.llm_training else False)
+
+        if self.training_args.world_size <= 1 or self.training_args.local_rank == 0:
             iter_ctx.guest.put("llm_pub_logits", llm_pub_logits.to_dict())
             if len(self.slm_tokenizers) > 1:
                 iter_ctx.hosts.put("llm_pub_logits", llm_pub_logits.to_dict())
 
-        if self.training_args.post_fedavg and (epoch_idx + 1) % self.fed_args.aggregate_freq == 0:
-            self.aggregator.model_aggregation(iter_ctx)
+            if self.training_args.post_fedavg and (epoch_idx + 1) % self.fed_args.aggregate_freq == 0:
+                self.aggregator.model_aggregation(iter_ctx)
+
+            if self.training_args.world_size > 1:
+                sync_dataset(
+                    llm_pub_logits, self.training_args.local_rank, self.training_args.world_size, self.training_args.device
+                )
+        else:
+            llm_pub_logits = sync_dataset(
+                None, self.training_args.local_rank, self.training_args.world_size, self.training_args.device
+            )
 
         return llm_pub_logits
 
@@ -484,4 +550,4 @@ class FedMKTLLM(FedMKTBase):
                 fedmkt_trainer.train()
                 self.model = unwrap_model(fedmkt_trainer.model)
 
-            self.on_epoch_end(iter_ctx, i)
+            previous_pub_logits = self.on_epoch_end(iter_ctx, i)
