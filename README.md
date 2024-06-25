@@ -28,3 +28,15 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 - [Federated ChatGLM-6B Training](./doc/tutorial/parameter_efficient_llm/ChatGLM-6B_ds.ipynb)
 - [GPT-2 Training](./doc/tutorial/parameter_efficient_llm/GPT2-example.ipynb)
 - [Builtin Models In PELLM](./doc/tutorial/builtin_models.md)
+
+## Citation
+
+If you publish work that uses FATE-LLM, please cite FATE-LLM as follows:
+```
+@article{fan2023fate,
+  title={Fate-llm: A industrial grade federated learning framework for large language models},
+  author={Fan, Tao and Kang, Yan and Ma, Guoqiang and Chen, Weijing and Wei, Wenbin and Fan, Lixin and Yang, Qiang},
+  journal={arXiv preprint arXiv:2310.10049},
+  year={2023}
+}
+```
