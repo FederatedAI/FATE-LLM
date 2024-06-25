@@ -14,6 +14,11 @@
 #  limitations under the License.
 #
 
+
+"""
+Parts of the codes are modified from https://github.com/mengtong0110/InferDPT
+"""
+
 from decimal import getcontext
 from transformers import AutoTokenizer
 import numpy as np
