@@ -24,7 +24,20 @@ Please refer to [FATE-Standalone deployment](https://github.com/FederatedAI/FATE
 Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Download#llm%E9%83%A8%E7%BD%B2%E5%8C%85) to deploy,  refer to [FATE-Cluster deployment](https://github.com/FederatedAI/FATE#cluster-deployment) for more deployment details.
 
 ## Quick Start
+
 - [Federated ChatGLM3-6B Training](./doc/tutorial/parameter_efficient_llm/ChatGLM3-6B_ds.ipynb)
 - [Builtin Models In PELLM](./doc/tutorial/builtin_pellm_models.md)
 - [Offsite Tuning Tutorial](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
 - [FedKSeed](./doc/tutorial/fedkseed/fedkseed-example.ipynb)
+
+## Citation
+
+If you publish work that uses FATE-LLM, please cite FATE-LLM as follows:
+```
+@article{fan2023fate,
+  title={Fate-llm: A industrial grade federated learning framework for large language models},
+  author={Fan, Tao and Kang, Yan and Ma, Guoqiang and Chen, Weijing and Wei, Wenbin and Fan, Lixin and Yang, Qiang},
+  journal={arXiv preprint arXiv:2310.10049},
+  year={2023}
+}
+```
