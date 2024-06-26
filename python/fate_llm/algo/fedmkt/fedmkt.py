@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 import transformers
 
 from ...trainer.seq2seq_trainer import Seq2SeqTrainingArguments
-from typing import Dict, Optional, List, Tuple, Callable, Union, Any
+from typing import Dict, Optional, List, Callable, Union
 from fate.arch import Context
 from fate.ml.nn.trainer.trainer_base import FedArguments
 from torch.utils.data import Dataset
@@ -59,8 +59,7 @@ class FedMKTTrainingArguments(Seq2SeqTrainingArguments):
     distillation params
     """
     distill_loss_type: str = field(default="ce")
-    kd_alpha: float = field(default=0.0)
-    distill_greater_as_gt_type: str = field(default="hard")
+    kd_alpha: float = field(default=0.9)
     distill_temperature: float = field(default=1.0)
     server_public_data_local_epoch: int = field(default=1)
     client_public_data_local_epoch: int = field(default=1)
@@ -109,7 +108,6 @@ class FedMKTTrainingArguments(Seq2SeqTrainingArguments):
         args_dict.pop("distill_loss_type")
         args_dict.pop("kd_alpha")
         args_dict.pop("distill_temperature")
-        args_dict.pop("distill_greater_as_gt_type")
         args_dict.pop("distill_strategy")
         args_dict.pop("server_public_data_local_epoch")
         args_dict.pop("client_public_data_local_epoch")
@@ -180,7 +178,7 @@ class FedMKTSLM(FedMKTBase):
         ctx: Context,
         model: torch.nn.Module,
         training_args: FedMKTTrainingArguments,
-        fed_args: FedArguments,
+        fed_args: FedArguments = None,
         priv_train_set=None,
         pub_train_set=None,
         val_set: Dataset = None,
@@ -327,7 +325,8 @@ class FedMKTSLM(FedMKTBase):
                 max_length=max(len(d["input_ids"]) for d in train_set),
                 blending_num=1,
                 vocab_size=self.training_args.vocab_size,
-                dtype=next(self.model.parameters()).dtype
+                dtype=next(self.model.parameters()).dtype,
+                distill_temperature=self.training_args.distill_temperature
             ),
             blending_num=1,
             lm_loss_weight=self.training_args.kd_alpha,
@@ -339,8 +338,6 @@ class FedMKTSLM(FedMKTBase):
 
     def _get_priv_data_training_args(self):
         pre_args = self.training_args.to_dict_with_client_priv_training_args()
-        pre_args["num_train_epochs"] = self.training_args.client_priv_data_local_epoch
-
         post_args = Seq2SeqTrainingArguments(**pre_args)
 
         return post_args
@@ -370,7 +367,7 @@ class FedMKTLLM(FedMKTBase):
         ctx: Context,
         model: torch.nn.Module,
         training_args: FedMKTTrainingArguments,
-        fed_args: FedArguments,
+        fed_args: FedArguments = None,
         train_set=None,
         val_set: Dataset = None,
         optimizer: torch.optim.Optimizer = None,
@@ -539,7 +536,8 @@ class FedMKTLLM(FedMKTBase):
                         max_length=max(len(d["input_ids"]) for d in aligend_train_set),
                         blending_num=len(self.slm_tokenizers),
                         vocab_size=self.training_args.vocab_size,
-                        dtype=next(self.model.parameters()).dtype
+                        dtype=next(self.model.parameters()).dtype,
+                        distill_temperature=self.training_args.distill_temperature
                     ),
                     blending_num=len(self.slm_tokenizers),
                     lm_loss_weight=self.training_args.kd_alpha,

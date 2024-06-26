@@ -1,4 +1,8 @@
 #
+# NOTE: The dtw function is copied from FuseAI/FuseLLM
+#       and the align_blending_model_logits_with_base_model_logits function is modified from FuseAI/FuseLLM
+# Copyright FuseAI
+#
 #  Copyright 2019 The FATE Authors. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,21 +40,6 @@ logger = logging.getLogger(__name__)
 def dtw(series_1, series_2, norm_func=np.linalg.norm):
     """code refer to: https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/others.py#L318"""
 
-    """
-    Copyright FuseAI
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-    """
     matrix = np.zeros((len(series_1) + 1, len(series_2) + 1))
     matrix[0, :] = np.inf
     matrix[:, 0] = np.inf
@@ -196,22 +185,7 @@ def align_blending_model_logits_with_base_model_logits(base_examples,
                                                        blending_model_index,
                                                        skip_align=False,
                                                        align_strategy="greedy_dp"):
-    """modifyed from https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/token_alignment.py#L101"""
-    """
-    Copyright FuseAI
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-    """
+    """modified from https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/token_alignment.py#L101"""
     base_features = [{key: base_examples[key][i] for key in base_examples} for i in
                      range(len(base_examples[next(iter(base_examples))]))]
     blending_features = [blending_examples[idx] for idx in indices]
@@ -265,21 +239,6 @@ def transform_step_logits(base_model_tokenizer: transformers.tokenization_utils_
                           align_strategy: str = "dtw"
                           ):
     """modified from https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/others.py#L364"""
-    """
-    Copyright FuseAI
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-    """
     """Align blending model per step logits & indices with base model."""
     base_model_tokens = base_model_tokenizer.convert_ids_to_tokens(base_model_input_ids)
     blending_model_tokens = blending_model_tokenizer.convert_ids_to_tokens(blending_model_input_ids)

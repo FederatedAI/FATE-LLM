@@ -121,7 +121,10 @@ class FedMKTRunner(DefaultRunner):
 
         self.training_args = training_args
 
-        fed_args = FedAVGArguments(**self.fed_args_conf)
+        if self.fed_args_conf is not None:
+            fed_args = FedAVGArguments(**self.fed_args_conf)
+        else:
+            fed_args = None
 
         pub_dataset = loader_load_from_conf(self.pub_dataset_conf)
         pub_dataset.load(self.pub_dataset_path)

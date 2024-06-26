@@ -15,7 +15,7 @@
 #
 PER_STEP_LOGITS = "per_step_logits"
 PER_STEP_INDICES = "per_step_indices"
-METRIC = "metric_"
+METRIC = "metric"
 
 ALIGNED_OTHER_LOGITS = "aligned_other_logits"
 ALIGNED_OTHER_INDICES = "aligned_other_indices"

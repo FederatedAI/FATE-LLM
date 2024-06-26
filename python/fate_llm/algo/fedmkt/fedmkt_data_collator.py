@@ -1,4 +1,8 @@
 #
+# NOTE: The implementations of DataCollatorForFedMKT is modified from FuseAI/FuseLLM
+# Copyright FuseAI/FuseLLM
+#
+#
 #  Copyright 2019 The FATE Authors. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,21 +39,6 @@ logger = logging.getLogger(__name__)
 
 class DataCollatorForFedMKT(DataCollatorForSeq2Seq):
     """modified from https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/data_collator.py#L135"""
-    """
-    Copyright FuseAI
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-    """
     tokenizer: PreTrainedTokenizerBase
     model: Optional[Any] = None
     padding: Union[bool, str, PaddingStrategy] = True
@@ -58,7 +47,7 @@ class DataCollatorForFedMKT(DataCollatorForSeq2Seq):
     label_pad_token_id: int = -100
     return_tensors: str = "pt"
     blending_num: int = 1
-    distill_teacher_temperature: float = 1.0
+    distill_temperature: float = 1.0
     vocab_size: int = None
     dtype: torch.dtype = torch.bfloat16
 
@@ -66,11 +55,13 @@ class DataCollatorForFedMKT(DataCollatorForSeq2Seq):
         blending_num = kwargs.pop("blending_num", 4)
         vocab_size = kwargs.pop("vocab_size", None)
         dtype = kwargs.pop("dtype", torch.dtype)
+        distill_temperature = kwargs.pop("distill_temperature", 1.0)
         super(DataCollatorForFedMKT, self).__init__(*args, **kwargs)
         self.blending_num = blending_num
         self.vocab_size = vocab_size if vocab_size is not None else len(self.tokenizer.get_vocab())
         self.pad_id = self.tokenizer.pad_token_id
         self.dtype = dtype
+        self.distill_temperature = distill_temperature
 
     def __call__(self, features, return_tensors=None):
         extra_features = dict()
@@ -95,7 +86,7 @@ class DataCollatorForFedMKT(DataCollatorForSeq2Seq):
             for j in range(self.max_length):
                 if j < base_seq_len:
                     base_logits = torch.tensor(features[PER_STEP_LOGITS][i][j], dtype=self.dtype)
-                    base_prob = softmax(base_logits / self.distill_teacher_temperature, -1)
+                    base_prob = softmax(base_logits / self.distill_temperature, -1)
                     base_indices = torch.tensor(features[PER_STEP_INDICES][i][j])
                     base_target_dist[i][j] = base_target_dist[i][j].scatter_(-1, base_indices, base_prob)
 
@@ -104,7 +95,7 @@ class DataCollatorForFedMKT(DataCollatorForSeq2Seq):
                         per_step_aligned_logits_key = f"{ALIGNED_OTHER_LOGITS}_{k}"
                         if len(features[per_step_aligned_indices_key][i][j]) > 0:
                             aligned_logits = torch.tensor(features[per_step_aligned_logits_key][i][j], dtype=self.dtype)
-                            aligned_prob = softmax(aligned_logits / self.distill_teacher_temperature, -1)
+                            aligned_prob = softmax(aligned_logits / self.distill_temperature, -1)
                             aligned_indices = torch.tensor(features[per_step_aligned_indices_key][i][j])
                             aligned_target_dists[k][i][j] = aligned_target_dists[k][i][j].scatter_(-1, aligned_indices, aligned_prob)
                         else:
