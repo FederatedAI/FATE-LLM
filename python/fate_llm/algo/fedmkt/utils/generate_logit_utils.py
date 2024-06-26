@@ -52,6 +52,7 @@ class LogitsSelection(object):
     @classmethod
     def select_highest(cls, logits, top_k_logits_keep):
         top_k_logits, top_k_indices = torch.topk(logits.cuda(), k=top_k_logits_keep)
+        logits.cpu()
 
         return top_k_logits, top_k_indices
 

@@ -1,4 +1,8 @@
 #
+# NOTE: The implementations of FedMKTTrainer is modified from FuseAI/FuseLLM
+# Copyright FuseAI
+#
+#
 #  Copyright 2019 The FATE Authors. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,21 +36,6 @@ logger = logging.getLogger(__name__)
 class FedMKTTrainer(Seq2SeqTrainer):
     """
     modified from https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/trainer.py#L22
-    """
-    """
-    Copyright FuseAI
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
     """
     blending_num: int = 2
     distill_loss_type: str = "ce"

@@ -1,4 +1,8 @@
 #
+# NOTE: The find_best_mapping function is copied from FuseAI/FuseLLM
+# Copyright FuseAI/FuseLLM
+#
+#
 #  Copyright 2019 The FATE Authors. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,21 +31,6 @@ logger = logging.getLogger(__name__)
 
 def find_best_mapping(x, base_tokens, blending_model_special_token, base_model_special_token, best_one=True):
     """code refer to https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/vocab_mapping.py#L82"""
-    """
-    Copyright FuseAI
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-    """
     tmp_x = x.replace(blending_model_special_token, base_model_special_token)
     if tmp_x in base_tokens:
         return tmp_x, tmp_x
@@ -62,7 +51,7 @@ def get_vocab_mappings(model_name_or_path, candidate_model_name_or_path, vocab_m
     ori_special_tok = TOKENIZER_TO_SPECIAL_TOKEN[ori_tokenizer.__class__]
     candidate_special_tok = TOKENIZER_TO_SPECIAL_TOKEN[candidate_tokenizer.__class__]
 
-    candidate_tokens = set(candidate_tokenizer.get_vocab().keys())
+    candidate_tokens = list(candidate_tokenizer.get_vocab().keys())
 
     with multiprocessing.Pool(num_processors) as process_pool:
         func_args = [(tok, candidate_tokens, ori_special_tok, candidate_special_tok) for tok in ori_tokenizer.get_vocab()]
