@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 from transformers import GPT2Config, AutoConfig
-from transformers import GPT2ForSequenceClassification
+from transformers import GPT2ForSequenceClassification, AutoModelForCausalLM
 from fate_llm.model_zoo.pellm.parameter_efficient_llm import PELLM
 
 
@@ -45,3 +45,7 @@ class GPT2(PELLM):
         assert isinstance(
             config, GPT2Config), 'The config of pretrained model must be GPT2Config, but got {}'.format(
             type(config))
+
+
+class GPT2CLM(GPT2):
+    model_loader = AutoModelForCausalLM

@@ -17,10 +17,9 @@ from fate.components.components.nn.nn_runner import (
     load_model_dict_from_path,
     dir_warning,
     loader_load_from_conf,
-    run_dataset_func,
 )
 from fate.ml.nn.homo.fedavg import FedAVGArguments
-from fate_llm.homo.fedavg import Seq2SeqFedAVGClient, Seq2SeqFedAVGServer
+from fate_llm.algo.fedavg.fedavg import Seq2SeqFedAVGServer
 from typing import Dict
 from fate.components.components.nn.loader import Loader
 from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainingArguments
@@ -30,7 +29,7 @@ from typing import Literal
 import logging
 from fate.arch.dataframe import DataFrame
 from fate_llm.runner.homo_seq2seq_runner import Seq2SeqRunner, _check_instances
-from fate_llm.homo.offsite_tuning import OffsiteTuningTrainerClient, OffsiteTuningTrainerServer
+from fate_llm.algo.offsite_tuning.offsite_tuning import OffsiteTuningTrainerClient, OffsiteTuningTrainerServer
 
 
 logger = logging.getLogger(__name__)

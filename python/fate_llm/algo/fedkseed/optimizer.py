@@ -48,8 +48,8 @@ from typing import Mapping, Optional, Callable, Tuple, List
 import torch
 from torch.optim import Optimizer
 
-from fate_llm.fedkseed.pytorch_utils import get_optimizer_parameters_grouped_with_decay
-from fate_llm.fedkseed.zo_utils import directional_derivative_step
+from fate_llm.algo.fedkseed.pytorch_utils import get_optimizer_parameters_grouped_with_decay
+from fate_llm.algo.fedkseed.zo_utils import directional_derivative_step
 
 
 class RandomWalkOptimizer(Optimizer):

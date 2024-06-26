@@ -26,8 +26,8 @@ from fate.components.components.nn.nn_runner import (
 )
 from fate.components.components.nn.runner.homo_default_runner import DefaultRunner
 
-from fate_llm.fedkseed.fedkseed import Trainer, FedKSeedTrainingArguments, ClientTrainer
-from fate_llm.fedkseed.zo_utils import build_seed_candidates
+from fate_llm.algo.fedkseed import Trainer, FedKSeedTrainingArguments, ClientTrainer
+from fate_llm.algo.fedkseed import build_seed_candidates
 from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainingArguments
 
 logger = logging.getLogger(__name__)
