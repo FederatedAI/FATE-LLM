@@ -1,11 +1,11 @@
 # FATE-LLM
-FATE-LLM is a framework to support federated learning for large language models(LLMs).
+FATE-LLM is a framework to support federated learning for large language models(LLMs) and small language models(SLMs).
 <div align="center">
   <img src="./doc/images/fate-llm-show.png" height="300">
 </div>
 
 ## Design Principle
-- Federated learning for heterogeneous large model and small model.
+- Federated learning for large language models(LLMs) and small language models(SLMs).
 - Promote training efficiency of federated LLMs using Parameter-Efficient methods.
 - Protect the IP of LLMs using FedIPR.
 - Protect data privacy during training and inference through privacy preserving mechanisms.
@@ -27,10 +27,12 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 
 - [Federated ChatGLM3-6B Training](./doc/tutorial/parameter_efficient_llm/ChatGLM3-6B_ds.ipynb)
 - [Builtin Models In PELLM](./doc/tutorial/parameter_efficient_llm/builtin_pellm_models.md)
-- [Offsite Tuning Tutorial](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
-- [FedKSeed](./doc/tutorial/fedkseed/)
-- [InferDPT](./doc/tutorial/inferdpt/inferdpt_tutorial.ipynb)
-- [FedMKT](./doc/tutorial/fedmkt/)
+- [Offsite Tuning: Transfer Learning without Full Model](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
+- [FedKSeed: Federated Full-Parameter Tuning of Billion-Sized Language Models
+with Communication Cost under 18 Kilobytes](./doc/tutorial/fedkseed/)
+- [InferDPT: Privacy-preserving Inference for Black-box Large Language Models](./doc/tutorial/inferdpt/inferdpt_tutorial.ipynb)
+- [FedMKT: Federated Mutual Knowledge Transfer for Large and Small
+Language Models](./doc/tutorial/fedmkt/)
 
 ## Citation
 
