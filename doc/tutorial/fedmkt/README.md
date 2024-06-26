@@ -3,7 +3,7 @@
 The Algorithm is based on paper ["FedMKT: Federated Mutual Knowledge Transfer for Large and SmallLanguage Models"](https://arxiv.org/pdf/2406.02224), We integrate its code into the FATE-LLM framework.  
 
 ## Citation
-Please cite the following paper if you reference our model, code, data, or paper related to FedMKT.  
+If you publish work that uses FedMKT, please cite FedMKT as follows:
 ```
 @article{fan2024fedmkt,
   title={FedMKT: Federated Mutual Knowledge Transfer for Large and Small Language Models},
