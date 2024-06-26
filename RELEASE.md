@@ -1,3 +1,12 @@
+## Release 2.1.0
+### Major Features and Improvements
+* New FedMKT Federated Tuning Algorithms: Federated Mutual Knowledge Transfer for Large and Small Language Models
+  * Support three distinct scenarios: Heterogeneous, Homogeneous and One-to-One
+  * Support LLM to SLM one-way knowledge transfer
+* Introduce the InferDPT algorithm, which leverages differential privacy (DP) to facilitate privacy-preserving inference for large language models.
+* New Evaluation Tool LLM-Evaluation: evaluate FATE-LLM models in few lines with Python SDK or simple CLI commands, built-in cases included
+
+
 ## Release 2.0.0
 ### Major Features and Improvements
 * Adapt to fate-v2.0 framework:
