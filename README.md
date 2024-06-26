@@ -30,6 +30,14 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 - [Offsite Tuning Tutorial](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
 - [FedKSeed](./doc/tutorial/fedkseed/fedkseed-example.ipynb)
 
+
+## FATE-LLM Evaluation
+
+### Introduction
+- [FATE-LLM Evaluation](./doc/fate_llm_evaluation.md)
+- [examples](./examples)
+
+
 ## Citation
 
 If you publish work that uses FATE-LLM, please cite FATE-LLM as follows:
