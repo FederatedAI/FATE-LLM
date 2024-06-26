@@ -1,4 +1,4 @@
-hetero_nn_sshe_binary_0:
+bloom_lora_vs_zero_shot:
   bloom_lora:
     pretrained: "bloom-560m"
     script: "./test_bloom_lora.py"
