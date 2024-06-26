@@ -5,10 +5,10 @@ The Algorithm is based on paper ["FedMKT: Federated Mutual Knowledge Transfer fo
 ## Citation
 Please cite the following paper if you reference our model, code, data, or paper related to FedMKT.  
 ```
-@article{fan2024fedmkt,    
-  title={FedMKT: Federated Mutual Knowledge Transfer for Large and Small Language Models},  
-  author={Tao Fan, Guoqiang Ma, Yan Kang, Hanlin Gu, Yuanfeng Song, Lixin Fan, Kai Chen, Qiang Yang},  
-  journal={arXiv preprint arXiv:2406.02224},  
-  year={2024}  
+@article{fan2024fedmkt,
+  title={FedMKT: Federated Mutual Knowledge Transfer for Large and Small Language Models},
+  author={Fan, Tao and Ma, Guoqiang and Kang, Yan and Gu, Hanlin and Fan, Lixin and Yang, Qiang},
+  journal={arXiv preprint arXiv:2406.02224},
+  year={2024}
 }
 ```
