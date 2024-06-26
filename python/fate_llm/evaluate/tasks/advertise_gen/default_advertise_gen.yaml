@@ -11,3 +11,4 @@ metric_list:
   metric: !function 'advertise_utils.rouge_l'
 output_type: generate_until
 task: advertise-gen
+validation_split: validation
