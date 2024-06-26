@@ -1,5 +1,5 @@
 # FATE-LLM
-FATE-LLM is a framework to support federated learning for large language models(LLMs).
+FATE-LLM is a framework to support federated learning for large language models(LLMs) and small language models(SLMs).
 <div align="center">
   <img src="./doc/images/fate-llm-show.png" height="300">
 </div>
