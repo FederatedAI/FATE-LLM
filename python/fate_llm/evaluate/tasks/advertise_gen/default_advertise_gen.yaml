@@ -1,7 +1,7 @@
 dataset_kwargs:
   data_files:
     train: train.json
-    validation: val.json
+    validation: dev.json
 dataset_path: json
 doc_to_target: '{{summary}}'
 doc_to_text: '{{content}}'
