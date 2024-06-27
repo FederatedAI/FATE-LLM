@@ -1,9 +1,9 @@
 data:
-  - file: examples/data/train.json
+  - file: examples/data/AdvertiseGen/train.json
     table_name: ad
     namespace: experiment
     role: guest_0
-  - file: examples/data/train.json
+  - file: examples/data/AdvertiseGen/train.json
     table_name: ad
     namespace: experiment
     role: host_0
