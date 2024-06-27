@@ -25,8 +25,8 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 
 ## Quick Start
 
-- [Federated ChatGLM3-6B Training](./doc/tutorial/parameter_efficient_llm/ChatGLM3-6B_ds.ipynb)
-- [Builtin Models In PELLM](./doc/tutorial/parameter_efficient_llm/builtin_pellm_models.md)
+- [Federated ChatGLM3-6B Training](doc/tutorial/pellm/ChatGLM3-6B_ds.ipynb)
+- [Builtin Models In PELLM](doc/tutorial/pellm/builtin_pellm_models.md)
 - [Offsite Tuning: Transfer Learning without Full Model](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
 - [FedKSeed: Federated Full-Parameter Tuning of Billion-Sized Language Models
 with Communication Cost under 18 Kilobytes](./doc/tutorial/fedkseed/)
