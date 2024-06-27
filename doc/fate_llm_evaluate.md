@@ -40,6 +40,13 @@ When network allows, or if already cached, tasks from lm-evaluation may be provi
 FATE LLM provides built-in tasks for comparing evaluation results of different llm models. 
 Alternatively, user may provide arbitrary tasks for evaluation.
 
+### install
+
+```bash
+cd {path_to_fate_llm}/python
+pip install -e .
+```
+
 ### command options
 
 ```bash
