@@ -33,9 +33,10 @@ def download_data(data_dir, data_url, is_tar=True):
                 # extract tar file and write to data_dir
                 with tarfile.open(fileobj=io.BytesIO(response.content), mode='r:gz') as tar:
                     for member in tar.getmembers():
-                        print(f"member name: {member.name}")
-                        member.name = os.path.join(data_dir, os.path.basename(member.name))
-                        tar.extract(member)
+                        # check if member is a file
+                        if member.isreg():
+                            member.name = os.path.join(data_dir, os.path.basename(member.name))
+                            tar.extract(member)
             else:
                 # write to data_dir
                 with open(os.path.join(data_dir, os.path.basename(data_url)), 'wb') as f:
