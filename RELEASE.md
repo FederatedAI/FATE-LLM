@@ -4,7 +4,7 @@
   * Support three distinct scenarios: Heterogeneous, Homogeneous and One-to-One
   * Support LLM to SLM one-way knowledge transfer
 * Introduce the InferDPT algorithm, which leverages differential privacy (DP) to facilitate privacy-preserving inference for large language models.
-* Introduce FATE-Llm Evaluate: evaluate FATE-LLM models in few lines with Python SDK or simple CLI commands(`fate_llm evaluate`), built-in cases included
+* Introduce FATE-LLM Evaluate: evaluate FATE-LLM models in few lines with Python SDK or simple CLI commands(`fate_llm evaluate`), built-in cases included
 
 
 ## Release 2.0.0
