@@ -34,6 +34,10 @@ with Communication Cost under 18 Kilobytes](./doc/tutorial/fedkseed/)
 - [FedMKT: Federated Mutual Knowledge Transfer for Large and Small
 Language Models](./doc/tutorial/fedmkt/)
 
+## FATE-Llm Evaluate
+
+- [Python SDK & CLI Usage Guide](./doc/fate_llm_evaluate.md)
+
 ## Citation
 
 If you publish work that uses FATE-LLM, please cite FATE-LLM as follows:
