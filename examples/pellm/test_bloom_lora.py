@@ -28,8 +28,8 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         name=param["data"]["guest"]["name"]
     )
     reader_0.hosts[0].task_parameters(
-        namespace="experiment",
-        name="ad"
+        namespace=param["data"]["host"]["namespace"],
+        name=param["data"]["host"]["name"]
     )
 
     lora_config = LoraConfig(**param["peft_config"])
