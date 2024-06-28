@@ -1,0 +1,14 @@
+dataset_kwargs:
+  data_files:
+    train: train.json
+    validation: dev.json
+dataset_path: json
+doc_to_target: '{{summary}}'
+doc_to_text: '{{content}}'
+metric_list:
+- aggregation: mean
+  higher_is_better: true
+  metric: !function 'advertise_utils.rouge_l'
+output_type: generate_until
+task: advertise-gen
+validation_split: validation
