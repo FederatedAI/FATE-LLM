@@ -72,7 +72,6 @@ def load(filepath, filename='tmp.pkl'):
 class DSSTrainerClient(Seq2SeqTrainer):
 
     def __init__(self,
-                ctx: Context,
                 model: nn.Module,
                 training_args: Seq2SeqTrainingArguments,
                 train_set: Dataset,
@@ -88,7 +87,6 @@ class DSSTrainerClient(Seq2SeqTrainer):
     ) -> None:
 
         self.alpha = alpha
-        self.ctx = ctx
         Seq2SeqTrainer.__init__(
             self,
             model=model,
@@ -186,7 +184,7 @@ class PDSSTrainerClient(DSSTrainerClient):
         if self.args.local_rank == 0:  # other rank will skip federation step
             assert isinstance(self.train_dataset, PrefixDataset), "train_set should be an instance of PrefixDataset"
             dict_dataset = self.train_dataset.get_raw_dataset()
-            inferdpt_result = self.inferdpt_client.predict(dict_dataset, **self.inferdpt_predict_kwargs)
+            inferdpt_result = self.inferdpt_client.inference(dict_dataset, **self.inferdpt_predict_kwargs)
             self.inferdpt_result = inferdpt_result
             rationale_list = [i[self.inferdpt_predict_kwargs['result_key']] for i in self.inferdpt_result]
             self.train_dataset.load_rationale(rationale_list)

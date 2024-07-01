@@ -6,7 +6,6 @@ from jinja2 import Template
 from transformers import AutoTokenizer
 
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -14,19 +13,19 @@ class PrefixDataset(InputOutputDataset):
 
     def __init__(self, 
                 tokenizer_path,
-                predict_template_input: str,
-                predict_template_output: str,
-                rationale_template_input: str,
-                rationale_template_output: str,
+                predict_input_template: str,
+                predict_output_template: str,
+                rationale_input_template: str,
+                rationale_output_template: str,
                 max_input_length: int = 256, 
                 max_target_length: int = 256,
                 load_from: Literal['jsonl', 'hf_load_from_disk', 'hf_load_dataset'] = 'hf_load_from_disk',
                 split_key: str = None
                 ):
 
-        super().__init__(tokenizer_path, predict_template_input, predict_template_output, max_input_length, max_target_length, load_from, split_key)
-        self.r_input_template = Template(rationale_template_input)
-        self.r_output_template = Template(rationale_template_output)
+        super().__init__(tokenizer_path, predict_input_template, predict_output_template, max_input_length, max_target_length, load_from, split_key)
+        self.r_input_template = Template(rationale_input_template)
+        self.r_output_template = Template(rationale_output_template)
 
     def load_rationale(self, result_list):
         for d, r in zip(self.dataset, result_list):
