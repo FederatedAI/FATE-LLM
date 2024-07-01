@@ -13,11 +13,10 @@ class InputOutputDataset(Dataset):
 
     def __init__(self, 
                 tokenizer_path,
-                input_template: str = '',
-                output_template: str = '',
+                input_template: str,
+                output_template: str,
                 max_input_length: int = 256, 
                 max_target_length: int = 256,
-                pad_token: int = -100, 
                 load_from: Literal['jsonl', 'hf_load_from_disk', 'hf_load_dataset'] = 'hf_load_from_disk',
                 split_key: str = None
                 ):
@@ -32,7 +31,6 @@ class InputOutputDataset(Dataset):
         self.load_from = load_from
         self.input_template = Template(input_template)
         self.output_template = Template(output_template)
-        self.pad_token = pad_token
         self.split_key = split_key
         self.max_seq_length = max_input_length + max_target_length + 1
 
