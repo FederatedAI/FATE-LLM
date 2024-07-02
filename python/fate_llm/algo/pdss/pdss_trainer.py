@@ -35,7 +35,7 @@ from transformers import Seq2SeqTrainingArguments
 from transformers.trainer_utils import EvalPrediction
 from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainer, Seq2SeqTrainingArguments
 from fate_llm.algo.inferdpt.inference.inference_base import Inference
-from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
+from fate_llm.algo.inferdpt._encode_decode import EncoderDecoder
 
 
 logger = logging.getLogger(__name__)
@@ -125,8 +125,8 @@ class PDSSTrainerClient(DSSTrainerClient):
         compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
         alpha: float = 0.5,
-        mode: Literal['train_only', 'inferdpt_only', 'inferdpt_and_train'] = 'inferdpt_and_train',
-        inferdpt_client: InferDPTClient = None,
+        mode: Literal['train_only', 'infer_only', 'infer_and_train'] = 'infer_and_train',
+        inferdpt_client: EncoderDecoder = None,
         doc_template: str = None,
         instruction_template: str = None,
         decode_template: str = None,
