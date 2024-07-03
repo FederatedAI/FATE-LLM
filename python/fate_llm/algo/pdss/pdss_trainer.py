@@ -17,9 +17,7 @@ import os
 import pickle
 import time
 from torch import nn
-from fate.ml.aggregator.base import Aggregator
-from dataclasses import dataclass
-from typing import List, Optional, Callable, Literal
+from typing import List, Optional, Callable, Literal, Union
 from fate.arch import Context
 from torch.utils.data import DataLoader, Dataset
 from transformers.trainer_callback import TrainerCallback
@@ -35,11 +33,12 @@ from transformers import Seq2SeqTrainingArguments
 from transformers.trainer_utils import EvalPrediction
 from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainer, Seq2SeqTrainingArguments
 from fate_llm.algo.inferdpt.inference.inference_base import Inference
-from fate_llm.algo.inferdpt._encode_decode import EncoderDecoder
+from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
+from fate_llm.algo.pdss.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
 
 
 logger = logging.getLogger(__name__)
-_MODE = ['train_only', 'inferdpt_only', 'inferdpt_and_train']
+_MODE = ['train_only', 'infer_only', 'infer_and_train']
 
 
 # share obj between ranks in an easy way
@@ -126,20 +125,20 @@ class PDSSTrainerClient(DSSTrainerClient):
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
         alpha: float = 0.5,
         mode: Literal['train_only', 'infer_only', 'infer_and_train'] = 'infer_and_train',
-        inferdpt_client: EncoderDecoder = None,
+        infer_client: Union[SLMEncoderDecoderClient, InferDPTClient] = None,
         doc_template: str = None,
         instruction_template: str = None,
         decode_template: str = None,
-        result_key: str = 'inferdpt_result',
+        result_key: str = 'infer_result',
         verbose: bool = False,
         remote_inference_kwargs: dict = {},
         local_inference_kwargs: dict = {},
     ) -> None:
         
         self.mode = mode
-        self.inferdpt_client = inferdpt_client
-        self.inferdpt_result = None
-        self.inferdpt_predict_kwargs = {
+        self.infer_client = infer_client
+        self.infer_result = None
+        self.infer_predict_kwargs = {
             'doc_template': doc_template,
             'instruction_template': instruction_template,
             'decode_template': decode_template,
@@ -148,15 +147,15 @@ class PDSSTrainerClient(DSSTrainerClient):
             'remote_inference_kwargs': remote_inference_kwargs,
             'local_inference_kwargs': local_inference_kwargs
         }
-        self.inferdpt_result = None
+        self.infer_result = None
 
         assert mode in _MODE, "mode should be one of {}".format(_MODE)
         if training_args.local_rank == 0:
-            if mode == 'inferdpt_only' or mode == 'inferdpt_and_train':
-                if self.inferdpt_client is None:
+            if mode == 'infer_only' or mode == 'infer_and_train':
+                if self.infer_client is None:
                     raise ValueError('You must provide inference_inst for remote inference')
 
-        if mode != 'inferdpt_only':
+        if mode != 'infer_only':
             training_args.remove_unused_columns = False  # this parameter is neccessary
             DSSTrainerClient.__init__(
                 self,
@@ -179,59 +178,60 @@ class PDSSTrainerClient(DSSTrainerClient):
             self.args = training_args
             self.train_dataset = train_set
 
-    def inferdpt(self) -> List[str]:        
+    def infer(self) -> List[str]:        
 
         if self.args.local_rank == 0:  # other rank will skip federation step
             assert isinstance(self.train_dataset, PrefixDataset), "train_set should be an instance of PrefixDataset"
             dict_dataset = self.train_dataset.get_raw_dataset()
-            inferdpt_result = self.inferdpt_client.inference(dict_dataset, **self.inferdpt_predict_kwargs)
-            self.inferdpt_result = inferdpt_result
-            rationale_list = [i[self.inferdpt_predict_kwargs['result_key']] for i in self.inferdpt_result]
+            infer_result = self.infer_client.inference(dict_dataset, **self.infer_predict_kwargs)
+            self.infer_result = infer_result
+            rationale_list = [i[self.infer_predict_kwargs['result_key']] for i in self.infer_result]
             self.train_dataset.load_rationale(rationale_list)
             logger.info('Rationale loaded: {}'.format(rationale_list))
 
-            if self.mode == 'inferdpt_and_train':
+            if self.mode == 'infer_and_train':
                 if self.args.world_size > 1:  # sync dataset with other ranks
                     print('scattering obj')
                     save_to(rationale_list, self.args.output_dir)
 
         if self.args.local_rank > 0:
-            if self.mode == 'inferdpt_and_train':
-                # wait until inferdpt is done
+            if self.mode == 'infer_and_train':
+                # wait until infer is done
                 print('waiting for obj')
                 rationale_list = load(self.args.output_dir)
                 self.train_dataset.load_rationale(rationale_list)
                 logger.info('Rationale loaded')
-        logger.info('inferdpt done')
+        logger.info('infer done')
 
     def train(self):
 
         if self.mode == 'train_only':
             logger.info("Train only mode")
             super().train()
-        elif self.mode == 'inferdpt_only':
-            logger.info("Inferdpt only mode, skip training")
-            self.inferdpt()
-        elif self.mode == 'inferdpt_and_train':
-            logger.info("Inferdpt and train mode")
-            self.inferdpt()
+        elif self.mode == 'infer_only':
+            logger.info("infer only mode, skip training")
+            self.infer()
+        elif self.mode == 'infer_and_train':
+            logger.info("infer and train mode")
+            self.infer()
             super().train() 
 
-    def get_inferdpt_result(self):
-        return self.inferdpt_result
+    def get_infer_result(self):
+        return self.infer_result
 
 
 class PDSSTraineServer(object):
 
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context, infer_server: Union[SLMEncoderDecoderServer, InferDPTServer]):
         super().__init__()
         self.ctx = ctx
+        self.infer_server = infer_server
 
     def train(self):
-        pass
+        logger.info('Server side start inference')
+        self.infer_server.inference()
+        logger.info('Server inference done')
 
-    def predict(self):
-        pass
 
 if __name__ == '__main__':
     pass
