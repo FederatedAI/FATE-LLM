@@ -126,7 +126,7 @@ class PDSSTrainerClient(DSSTrainerClient):
         alpha: float = 0.5,
         mode: Literal['train_only', 'infer_only', 'infer_and_train'] = 'infer_and_train',
         infer_client: Union[SLMEncoderDecoderClient, InferDPTClient] = None,
-        doc_template: str = None,
+        encode_template: str = None,
         instruction_template: str = None,
         decode_template: str = None,
         result_key: str = 'infer_result',
@@ -139,7 +139,7 @@ class PDSSTrainerClient(DSSTrainerClient):
         self.infer_client = infer_client
         self.infer_result = None
         self.infer_predict_kwargs = {
-            'doc_template': doc_template,
+            'encode_template': encode_template,
             'instruction_template': instruction_template,
             'decode_template': decode_template,
             'result_key': result_key,
@@ -159,7 +159,6 @@ class PDSSTrainerClient(DSSTrainerClient):
             training_args.remove_unused_columns = False  # this parameter is neccessary
             DSSTrainerClient.__init__(
                 self,
-                ctx=ctx,
                 model=model,
                 training_args=training_args,
                 train_set=train_set,
@@ -186,22 +185,20 @@ class PDSSTrainerClient(DSSTrainerClient):
             infer_result = self.infer_client.inference(dict_dataset, **self.infer_predict_kwargs)
             self.infer_result = infer_result
             rationale_list = [i[self.infer_predict_kwargs['result_key']] for i in self.infer_result]
-            self.train_dataset.load_rationale(rationale_list)
-            logger.info('Rationale loaded: {}'.format(rationale_list))
-
+            self.train_dataset.load_rationale(rationale_list, key=self.infer_predict_kwargs['result_key'])
+            logger.info('infer done')
             if self.mode == 'infer_and_train':
                 if self.args.world_size > 1:  # sync dataset with other ranks
-                    print('scattering obj')
+                    logger.info('scattering obj')
                     save_to(rationale_list, self.args.output_dir)
 
         if self.args.local_rank > 0:
             if self.mode == 'infer_and_train':
                 # wait until infer is done
-                print('waiting for obj')
+                logger.info('waiting for obj')
                 rationale_list = load(self.args.output_dir)
                 self.train_dataset.load_rationale(rationale_list)
                 logger.info('Rationale loaded')
-        logger.info('infer done')
 
     def train(self):
 

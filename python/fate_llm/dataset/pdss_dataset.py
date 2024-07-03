@@ -27,9 +27,9 @@ class PrefixDataset(InputOutputDataset):
         self.r_input_template = Template(rationale_input_template)
         self.r_output_template = Template(rationale_output_template)
 
-    def load_rationale(self, result_list):
+    def load_rationale(self, result_list, key='rationale'):
         for d, r in zip(self.dataset, result_list):
-            d['rationale'] = r
+            d[key] = r
 
     def get_str_item(self, i) -> dict:
 
