@@ -153,7 +153,7 @@ class PDSSTrainerClient(DSSTrainerClient):
         if training_args.local_rank == 0:
             if mode == 'infer_only' or mode == 'infer_and_train':
                 if self.infer_client is None:
-                    raise ValueError('You must provide inference_inst for remote inference')
+                    raise ValueError('You must provide an inference instance for remote inference')
 
         if mode != 'infer_only':
             training_args.remove_unused_columns = False  # this parameter is neccessary

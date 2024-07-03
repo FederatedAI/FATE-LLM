@@ -47,7 +47,7 @@ class InferDPTRunner(NNRunner):
     def __init__(
         self,
         inferdpt_init_conf: Dict,
-        doc_template: str = None,
+        encode_template: str = None,
         instruction_template: str = None,
         decode_template: str = None,
         dataset_conf: Optional[Dict] = None,
@@ -58,7 +58,7 @@ class InferDPTRunner(NNRunner):
         result_key: str = 'inferdpt_result',
     ) -> None:
         self.inferdpt_init_conf = inferdpt_init_conf
-        self.doc_template = doc_template
+        self.encode_template = encode_template
         self.instruction_template = instruction_template
         self.decode_template = decode_template
         self.dataset_conf = dataset_conf
@@ -128,7 +128,7 @@ class InferDPTRunner(NNRunner):
             logger.info('initializing inst')
             client_inst = self.client_setup()
             pred_rs = client_inst.inference(
-                dataset_0, self.doc_template, self.instruction_template, self.decode_template, \
+                dataset_0, self.encode_template, self.instruction_template, self.decode_template, \
                 remote_inference_kwargs=self.remote_inference_kwargs,
                 local_inference_kwargs=self.local_inference_kwargs
             )
