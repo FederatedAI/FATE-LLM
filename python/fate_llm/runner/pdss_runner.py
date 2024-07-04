@@ -109,7 +109,9 @@ class Seq2SeqRunner(DefaultRunner):
         self.training_args = None
 
 
-    def _get_inferdpt_inst(self, init_conf):
+    def _get_inferclient_inst(self, init_conf):
+        if init_conf is None:
+            return None
         loader = Loader.from_dict(init_conf)
         init_inst = loader.load_item()(self.get_context())
         assert isinstance(init_inst, InferDPTInit), 'Need a InferDPTInit class for initialization, but got {}'.format(type(init_inst))
@@ -174,7 +176,9 @@ class Seq2SeqRunner(DefaultRunner):
             decode_template=self.decode_template,
             instruction_template=self.instruction_template,
             local_inference_kwargs=self.local_inference_kwargs,
-            remote_inference_kwargs=self.remote_inference_kwargs
+            remote_inference_kwargs=self.remote_inference_kwargs,
+            data_collator=data_collator,
+            optimizer=optimizer
         )
 
         return trainer

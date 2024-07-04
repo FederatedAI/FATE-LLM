@@ -32,7 +32,7 @@ from typing import Union, Type, Callable, Optional
 from typing import Literal
 import logging
 from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
-from fate_llm.algo.inferdpt.init._init import InferDPTInit
+from fate_llm.algo.inferdpt.init._init import InferClientInit
 from fate.components.components.nn.loader import Loader
 from fate_llm.dataset.hf_dataset import HuggingfaceDataset, Dataset
 from fate.arch.dataframe import DataFrame
@@ -71,18 +71,18 @@ class InferDPTRunner(NNRunner):
     def _get_inferdpt_inst(self):
         loader = Loader.from_dict(self.inferdpt_init_conf)
         init_inst = loader.load_item()(self.get_context())
-        assert isinstance(init_inst, InferDPTInit), 'Need a InferDPTInit class for initialization, but got {}'.format(type(init_inst))
-        inferdpt_inst = init_inst.get_inferdpt_inst()
+        assert isinstance(init_inst, InferClientInit), 'Need a InferDPTInit class for initialization, but got {}'.format(type(init_inst))
+        inferdpt_inst = init_inst.get_inst()
         logger.info('inferdpt inst loaded')
         return inferdpt_inst
     
     def client_setup(self):
-        client_inst = self._get_inferdpt_inst()
+        client_inst = self._get_inst()
         assert isinstance(client_inst, InferDPTClient), 'Client need to get an InferDPTClient class to run the algo'
         return client_inst
 
     def server_setup(self):
-        server_inst = self._get_inferdpt_inst()
+        server_inst = self._get_inst()
         assert isinstance(server_inst, InferDPTServer), 'Server need to get an InferDPTServer class to run the algo'
         return server_inst
 
