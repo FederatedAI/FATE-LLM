@@ -37,9 +37,10 @@ class InputOutputDataset(Dataset):
     def load(self, path):
         if self.load_from == 'hf_load_from_disk':
             import datasets
-            self.dataset = [i for i in datasets.load_from_disk(path)]
+            self.dataset = datasets.load_from_disk(path)
             if self.split_key is not None:
                 self.dataset = self.dataset[self.split_key]
+            self.dataset = [i for i in self.dataset]
         elif self.load_from == 'jsonl':
             import json
             with open(path, 'r') as f:
@@ -55,6 +56,7 @@ class InputOutputDataset(Dataset):
             self.dataset = load_dataset(path)
             if self.split_key is not None:
                 self.dataset = self.dataset[self.split_key]
+            self.dataset = [i for i in self.dataset]
         else:
             raise ValueError('unknown load format')
 

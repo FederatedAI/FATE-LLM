@@ -19,6 +19,7 @@ from fate.components.components.nn.nn_runner import (
     dir_warning,
     loader_load_from_conf,
 )
+from fate_llm.model_zoo.hf_model import HFAutoModelForCausalLM
 from fate.components.components.nn.loader import Loader
 from fate.arch.dataframe import DataFrame
 from fate.ml.nn.dataset.base import Dataset
@@ -63,7 +64,7 @@ def _check_instances(
         raise TypeError(f"SetupReturn Error: data_collator must be callable but got {type(data_collator)}")
 
 
-class Seq2SeqRunner(NNRunner):
+class PDSSRunner(NNRunner):
     def __init__(
         self,
         model_conf: Optional[Dict] = None,
@@ -101,11 +102,9 @@ class Seq2SeqRunner(NNRunner):
         self.perturbed_response_key = perturbed_response_key
         self.result_key = result_key
 
-        assert isinstance(self.local_mode, bool), "local should be bool"
         # setup var
         self.trainer = None
         self.training_args = None
-
 
     def _get_infer_inst(self, init_conf):
         if init_conf is None:
@@ -117,7 +116,6 @@ class Seq2SeqRunner(NNRunner):
         logger.info('inferdpt inst loaded')
         return infer_inst
     
-
     def _prepare_data(self, data, data_name):
         if data is None:
             return None
@@ -150,6 +148,8 @@ class Seq2SeqRunner(NNRunner):
 
         ctx = self.get_context()
         model = loader_load_from_conf(self.model_conf)
+        if isinstance(model, HFAutoModelForCausalLM):
+            model = model.load()
 
         if model is None:
             raise ValueError(f"model is None, cannot load model from conf {self.model_conf}")
@@ -244,3 +244,4 @@ class Seq2SeqRunner(NNRunner):
     def predict(self, test_data: Union[str], saved_model_path: str = None) -> None:
         logger.warning('The prediction mode is not supported by this algorithm in the current version. Please perform inference using locally saved models.')
         return 
+        
