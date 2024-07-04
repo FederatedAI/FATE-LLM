@@ -13,14 +13,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-from fate_llm.algo.inferdpt.init._init import InferClientInit
+from fate_llm.algo.inferdpt.init._init import InferInit
 from fate_llm.algo.inferdpt.inference.api import APICompletionInference
 from fate_llm.algo.inferdpt import inferdpt
 from fate_llm.algo.inferdpt.utils import InferDPTKit
 from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
 
 
-class InferDPTAPIClientInit(InferClientInit):
+class InferDPTAPIClientInit(InferInit):
 
     api_url = ''
     api_model_name = ''
@@ -39,7 +39,7 @@ class InferDPTAPIClientInit(InferClientInit):
         return inferdpt_client
 
 
-class InferDPTAPIServerInit(InferClientInit):
+class InferDPTAPIServerInit(InferInit):
 
     api_url = ''
     api_model_name = ''

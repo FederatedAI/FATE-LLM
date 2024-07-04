@@ -18,19 +18,17 @@ from fate.components.components.nn.nn_runner import (
     load_model_dict_from_path,
     dir_warning,
     loader_load_from_conf,
-    run_dataset_func,
 )
-from fate.components.components.nn.runner.homo_default_runner import DefaultRunner
 from fate.components.components.nn.loader import Loader
-from fate.ml.nn.trainer.trainer_base import HomoTrainerServer
 from fate.arch.dataframe import DataFrame
+from fate.ml.nn.dataset.base import Dataset
 from typing import Dict
 from fate_llm.algo.pdss.pdss_trainer import PDSSTrainerClient, PDSSTraineServer
 from fate_llm.algo.pdss.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
-from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
+from fate_llm.algo.inferdpt.init._init import InferInit
 import torch.nn as nn
 import torch.optim as optim
-from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainingArguments, HomoSeq2SeqTrainerClient
+from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainingArguments
 from typing import Union, Type, Callable, Optional
 from transformers.trainer_utils import get_last_checkpoint
 from typing import Literal
@@ -65,7 +63,7 @@ def _check_instances(
         raise TypeError(f"SetupReturn Error: data_collator must be callable but got {type(data_collator)}")
 
 
-class Seq2SeqRunner(DefaultRunner):
+class Seq2SeqRunner(NNRunner):
     def __init__(
         self,
         model_conf: Optional[Dict] = None,
@@ -75,7 +73,7 @@ class Seq2SeqRunner(DefaultRunner):
         data_collator_conf: Optional[Dict] = None,
         tokenizer_conf: Optional[Dict] = None,
         mode: Literal['train_only', 'infer_only', 'infer_and_train'] = False,
-        infer_client_init_conf: Dict = None,
+        infer_inst_init_conf: Dict = None,
         encode_template: str = None,
         instruction_template: str = None,
         decode_template: str = None,
@@ -93,7 +91,7 @@ class Seq2SeqRunner(DefaultRunner):
         self.data_collator_conf = data_collator_conf
         self.mode = mode
         self.tokenizer_conf = tokenizer_conf
-        self.infer_client_init_conf = infer_client_init_conf
+        self.infer_inst_init_conf = infer_inst_init_conf
         self.encode_template = encode_template
         self.instruction_template = instruction_template
         self.decode_template = decode_template
@@ -109,15 +107,43 @@ class Seq2SeqRunner(DefaultRunner):
         self.training_args = None
 
 
-    def _get_inferclient_inst(self, init_conf):
+    def _get_infer_inst(self, init_conf):
         if init_conf is None:
             return None
         loader = Loader.from_dict(init_conf)
         init_inst = loader.load_item()(self.get_context())
-        assert isinstance(init_inst, InferDPTInit), 'Need a InferDPTInit class for initialization, but got {}'.format(type(init_inst))
-        inferdpt_inst = init_inst.get_inferdpt_inst()
+        assert isinstance(init_inst, InferInit), 'Need a InferInit class for initialization, but got {}'.format(type(init_inst))
+        infer_inst = init_inst.get_inst()
         logger.info('inferdpt inst loaded')
-        return inferdpt_inst
+        return infer_inst
+    
+
+    def _prepare_data(self, data, data_name):
+        if data is None:
+            return None
+        if isinstance(data, DataFrame) and self.dataset_conf is None:
+            raise RuntimeError('DataFrame format dataset is not supported, please use bind path to load your dataset')
+        else:
+            dataset = loader_load_from_conf(self.dataset_conf)
+            if hasattr(dataset, "load"):
+                logger.info("load path is {}".format(data))
+                load_output = dataset.load(data)
+                if load_output is not None:
+                    dataset = load_output
+                    return dataset
+            else:
+                raise ValueError(
+                    f"The dataset {dataset} lacks a load() method, which is required for data parsing in the DefaultRunner. \
+                                Please implement this method in your dataset class. You can refer to the base class 'Dataset' in 'fate.ml.nn.dataset.base' \
+                                for the necessary interfaces to implement."
+                )
+        if dataset is not None and not issubclass(type(dataset), Dataset):
+            raise TypeError(
+                f"SetupReturn Error: {data_name}_set must be a subclass of fate built-in Dataset but got {type(dataset)}, \n"
+                f"You can get the class via: from fate.ml.nn.dataset.table import Dataset"
+            )
+
+        return dataset
     
 
     def client_setup(self, train_set=None, validate_set=None, output_dir=None, saved_model=None, stage="train"):
@@ -178,51 +204,43 @@ class Seq2SeqRunner(DefaultRunner):
             local_inference_kwargs=self.local_inference_kwargs,
             remote_inference_kwargs=self.remote_inference_kwargs,
             data_collator=data_collator,
-            optimizer=optimizer
+            optimizer=optimizer,
+            infer_client=self._get_infer_inst(self.infer_inst_init_conf)
         )
 
         return trainer
 
     def server_setup(self, stage="train"):
-        trainer = None
+        trainer = PDSSTraineServer(
+            ctx=self.get_context(),
+            infer_server=self._get_infer_inst(self.infer_inst_init_conf)
+        )
         return trainer
 
-    def predict(self, test_data: Union[str, DataFrame], saved_model_path: str = None) -> Union[DataFrame, None]:
+    def train(
+        self,
+        train_data: Optional[Union[str]] = None,
+        validate_data: Optional[Union[str]] = None,
+        output_dir: str = None,
+        saved_model_path: str = None,
+    ):
         if self.is_client():
-            test_set = self._prepare_data(test_data, "test_data")
-            if self.trainer is not None:
-                trainer = self.trainer
-                logger.info("trainer found, skip setting up")
-            else:
-                trainer = self.client_setup(saved_model=saved_model_path, stage="predict")
-
-            classes = run_dataset_func(test_set, "get_classes")
-            match_ids = run_dataset_func(test_set, "get_match_ids")
-            sample_ids = run_dataset_func(test_set, "get_sample_ids")
-            match_id_name = run_dataset_func(test_set, "get_match_id_name")
-            sample_id_name = run_dataset_func(test_set, "get_sample_id_name")
-
-            if not self.training_args.predict_with_generate:
-                return
-
-            pred_rs = trainer.predict(test_set)
-
-            if self.training_args and self.training_args.deepspeed and self.training_args.local_rank != 0:
-                return
-
-            rs_df = self.get_nn_output_dataframe(
-                self.get_context(),
-                pred_rs.predictions,
-                pred_rs.label_ids if hasattr(pred_rs, "label_ids") else None,
-                match_ids,
-                sample_ids,
-                match_id_name=match_id_name,
-                sample_id_name=sample_id_name,
-                dataframe_format="dist_df",
-                task_type=self.task_type,
-                classes=classes,
+            train_set = self._prepare_data(train_data, "train_data")
+            validate_set = self._prepare_data(validate_data, "val_data")
+            trainer = self.client_setup(
+                train_set=train_set, validate_set=validate_set, output_dir=output_dir, saved_model=saved_model_path
             )
-            return rs_df
-        else:
-            # server not predict
-            return
+            self.trainer = trainer
+            trainer.train()
+            if output_dir is not None:
+                if self.training_args.deepspeed and self.training_args.local_rank != 0:
+                    pass
+                else:
+                    trainer.save_model(output_dir)
+        elif self.is_server():
+            trainer = self.server_setup()
+            trainer.train()
+
+    def predict(self, test_data: Union[str], saved_model_path: str = None) -> None:
+        logger.warning('The prediction mode is not supported by this algorithm in the current version. Please perform inference using locally saved models.')
+        return 

@@ -32,7 +32,7 @@ from typing import Union, Type, Callable, Optional
 from typing import Literal
 import logging
 from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
-from fate_llm.algo.inferdpt.init._init import InferClientInit
+from fate_llm.algo.inferdpt.init._init import InferInit
 from fate.components.components.nn.loader import Loader
 from fate_llm.dataset.hf_dataset import HuggingfaceDataset, Dataset
 from fate.arch.dataframe import DataFrame
@@ -71,7 +71,7 @@ class InferDPTRunner(NNRunner):
     def _get_inferdpt_inst(self):
         loader = Loader.from_dict(self.inferdpt_init_conf)
         init_inst = loader.load_item()(self.get_context())
-        assert isinstance(init_inst, InferClientInit), 'Need a InferDPTInit class for initialization, but got {}'.format(type(init_inst))
+        assert isinstance(init_inst, InferInit), 'Need a InferDPTInit class for initialization, but got {}'.format(type(init_inst))
         inferdpt_inst = init_inst.get_inst()
         logger.info('inferdpt inst loaded')
         return inferdpt_inst

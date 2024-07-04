@@ -18,7 +18,7 @@ from fate.arch import Context
 from typing import Union
 
 
-class InferClientInit(object):
+class InferInit(object):
 
     def __init__(self, ctx: Context):
         self.ctx = ctx
