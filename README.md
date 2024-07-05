@@ -45,7 +45,7 @@ If you publish work that uses FATE-LLM, please cite FATE-LLM as follows:
 @article{fan2023fate,
   title={Fate-llm: A industrial grade federated learning framework for large language models},
   author={Fan, Tao and Kang, Yan and Ma, Guoqiang and Chen, Weijing and Wei, Wenbin and Fan, Lixin and Yang, Qiang},
-  journal={Symposium on Advances and Open Problems in Large Language Models (LLM@IJCAI'23)},
+  journal={arXiv preprint arXiv:2310.10049},
   year={2023}
 }
 ```
