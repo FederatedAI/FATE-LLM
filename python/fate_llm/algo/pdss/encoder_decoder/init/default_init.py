@@ -45,6 +45,6 @@ class PDSSEDAPIServerInit(InferInit):
         super().__init__(ctx)
         self.ctx = ctx
 
-    def get_inferdpt_inst(self):
+    def get_inst(self):
         inference = APICompletionInference(api_url=self.api_url, model_name=self.api_model_name, api_key=self.api_key)
         return SLMEncoderDecoderServer(self.ctx, inference)
