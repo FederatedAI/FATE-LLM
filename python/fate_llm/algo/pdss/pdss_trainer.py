@@ -82,7 +82,7 @@ class DSSTrainerClient(Seq2SeqTrainer):
                 tokenizer: Optional[PreTrainedTokenizer] = None,
                 callbacks: Optional[List[TrainerCallback]] = [],
                 compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
-                preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+                preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None
     ) -> None:
 
         self.alpha = alpha
@@ -133,6 +133,7 @@ class PDSSTrainerClient(DSSTrainerClient):
         verbose: bool = False,
         remote_inference_kwargs: dict = {},
         local_inference_kwargs: dict = {},
+        tmp_data_share_path: str = None
     ) -> None:
         
         self.mode = mode
@@ -148,6 +149,7 @@ class PDSSTrainerClient(DSSTrainerClient):
             'local_inference_kwargs': local_inference_kwargs
         }
         self.infer_result = None
+        self.tmp_data_share_path = tmp_data_share_path
 
         assert mode in _MODE, "mode should be one of {}".format(_MODE)
         if training_args.local_rank == 0:
@@ -189,14 +191,16 @@ class PDSSTrainerClient(DSSTrainerClient):
             logger.info('infer done')
             if self.mode == 'infer_and_train':
                 if self.args.world_size > 1:  # sync dataset with other ranks
-                    logger.info('scattering obj')
-                    save_to(rationale_list, self.args.output_dir)
+                    tmp_path = self.tmp_data_share_path if self.tmp_data_share_path is not None else self.args.output_dir
+                    logger.info('scattering obj, save to temp path {}'.format(tmp_path))
+                    save_to(rationale_list, tmp_path)
 
         if self.args.local_rank > 0:
             if self.mode == 'infer_and_train':
                 # wait until infer is done
-                logger.info('waiting for obj')
-                rationale_list = load(self.args.output_dir)
+                tmp_path = self.tmp_data_share_path if self.tmp_data_share_path is not None else self.args.output_dir
+                logger.info('waiting for obj, load frm temp path {}'.format(tmp_path))
+                rationale_list = load(tmp_path)
                 self.train_dataset.load_rationale(rationale_list)
                 logger.info('Rationale loaded')
 

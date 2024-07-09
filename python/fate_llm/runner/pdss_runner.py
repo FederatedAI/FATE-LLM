@@ -12,7 +12,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import torch
 from fate.components.components.nn.nn_runner import (
     NNRunner,
     load_model_dict_from_path,
@@ -37,6 +37,7 @@ import logging
 
 
 logger = logging.getLogger(__name__)
+
 
 
 def _check_instances(
@@ -67,13 +68,13 @@ def _check_instances(
 class PDSSRunner(NNRunner):
     def __init__(
         self,
+        mode: Literal['train_only', 'infer_only', 'infer_and_train'],
         model_conf: Optional[Dict] = None,
         dataset_conf: Optional[Dict] = None,
         optimizer_conf: Optional[Dict] = None,
         training_args_conf: Optional[Dict] = None,
         data_collator_conf: Optional[Dict] = None,
         tokenizer_conf: Optional[Dict] = None,
-        mode: Literal['train_only', 'infer_only', 'infer_and_train'] = False,
         infer_inst_init_conf: Dict = None,
         encode_template: str = None,
         instruction_template: str = None,
@@ -101,6 +102,7 @@ class PDSSRunner(NNRunner):
         self.perturb_doc_key = perturb_doc_key
         self.perturbed_response_key = perturbed_response_key
         self.result_key = result_key
+        self._temp_data_path = ''
 
         # setup var
         self.trainer = None
@@ -125,10 +127,15 @@ class PDSSRunner(NNRunner):
             dataset = loader_load_from_conf(self.dataset_conf)
             if hasattr(dataset, "load"):
                 logger.info("load path is {}".format(data))
-                load_output = dataset.load(data)
-                if load_output is not None:
-                    dataset = load_output
-                    return dataset
+                import os
+                if os.path.exists(data) and os.path.isdir(data):
+                    self._temp_data_path = data
+                    load_output = dataset.load(data)
+                    if load_output is not None:
+                        dataset = load_output
+                        return dataset
+                else:
+                    raise RuntimeError('You must offer an existing folder path as data input, but got {}'.format(data))
             else:
                 raise ValueError(
                     f"The dataset {dataset} lacks a load() method, which is required for data parsing in the DefaultRunner. \
@@ -143,13 +150,12 @@ class PDSSRunner(NNRunner):
 
         return dataset
     
-
     def client_setup(self, train_set=None, validate_set=None, output_dir=None, saved_model=None, stage="train"):
 
         ctx = self.get_context()
         model = loader_load_from_conf(self.model_conf)
         if isinstance(model, HFAutoModelForCausalLM):
-            model = model.load()
+            model = model.load().cuda()
 
         if model is None:
             raise ValueError(f"model is None, cannot load model from conf {self.model_conf}")
@@ -183,12 +189,13 @@ class PDSSRunner(NNRunner):
         # args
         dir_warning(self.training_args_conf)
         training_args = Seq2SeqTrainingArguments(**self.training_args_conf)
-        self.training_args = training_args
         # reset to default, saving to arbitrary path is not allowed in
         # DefaultRunner
         training_args.output_dir = output_dir
+        logger.info('output dir is {}'.format(output_dir))
         training_args.resume_from_checkpoint = resume_path  # resume path
-
+        self.training_args = training_args
+        
         # prepare trainer
         trainer = PDSSTrainerClient(
             ctx=ctx,
@@ -205,7 +212,8 @@ class PDSSRunner(NNRunner):
             remote_inference_kwargs=self.remote_inference_kwargs,
             data_collator=data_collator,
             optimizer=optimizer,
-            infer_client=self._get_infer_inst(self.infer_inst_init_conf)
+            infer_client=self._get_infer_inst(self.infer_inst_init_conf),
+            tmp_data_share_path=self._temp_data_path
         )
 
         return trainer
@@ -232,16 +240,26 @@ class PDSSRunner(NNRunner):
             )
             self.trainer = trainer
             trainer.train()
-            if output_dir is not None:
-                if self.training_args.deepspeed and self.training_args.local_rank != 0:
-                    pass
-                else:
-                    trainer.save_model(output_dir)
+
+            if self.mode == 'infer_only':
+                # save result dataset to the output dir
+                saving_path = output_dir + '/' + 'inference_result.pkl'
+                torch.save(train_set.dataset, saving_path)
+                logger.info('inference result saved to {}'.format(saving_path))
+            else:
+                if output_dir is not None:
+                    if self.training_args.deepspeed and self.training_args.local_rank != 0:
+                        pass
+                    else:
+                        trainer.save_model(output_dir)
+
         elif self.is_server():
-            trainer = self.server_setup()
-            trainer.train()
+            if self.mode == 'train_only':
+                return 
+            else:
+                trainer = self.server_setup()
+                trainer.train()
 
     def predict(self, test_data: Union[str], saved_model_path: str = None) -> None:
         logger.warning('The prediction mode is not supported by this algorithm in the current version. Please perform inference using locally saved models.')
         return 
-        
