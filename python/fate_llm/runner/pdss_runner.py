@@ -155,7 +155,7 @@ class PDSSRunner(NNRunner):
         ctx = self.get_context()
         model = loader_load_from_conf(self.model_conf)
         if isinstance(model, HFAutoModelForCausalLM):
-            model = model.load().cuda()
+            model = model.load()
 
         if model is None:
             raise ValueError(f"model is None, cannot load model from conf {self.model_conf}")
@@ -192,9 +192,13 @@ class PDSSRunner(NNRunner):
         # reset to default, saving to arbitrary path is not allowed in
         # DefaultRunner
         training_args.output_dir = output_dir
-        logger.info('output dir is {}'.format(output_dir))
         training_args.resume_from_checkpoint = resume_path  # resume path
         self.training_args = training_args
+
+        if self.training_args.world_size > 0 and self.training_args.local_rank == 0:
+            infer_client = self._get_infer_inst(self.infer_inst_init_conf)
+        else:
+            infer_client = None # only rank 0 need to load the client
         
         # prepare trainer
         trainer = PDSSTrainerClient(
@@ -212,7 +216,7 @@ class PDSSRunner(NNRunner):
             remote_inference_kwargs=self.remote_inference_kwargs,
             data_collator=data_collator,
             optimizer=optimizer,
-            infer_client=self._get_infer_inst(self.infer_inst_init_conf),
+            infer_client=infer_client,
             tmp_data_share_path=self._temp_data_path
         )
 
