@@ -13,7 +13,7 @@ label_key: label
 text_key: stars
 validation_split: train
 sub_domain: Health
-generate_format: "Product type: {{sub_domain}} | Review Score: {{label}}"
+tokenize_format: "Product type: {{sub_domain}} | Review Score: {{label}}"
 augment_format: "The reviews are rated from 1 to 5 stars, with 1 being the worst, 3 being neutral and 5 being the best. Please generate more similar samples for each rating star about the Health domain as shown in the following format, bearing in mind that the generated results should not copy or resemble the examples, and should align with the {{sub_domain}} domain and the rating stars.\nThe examples are delimited by '******'."
 filter_format: "I will give you some customer review text samples with their rating stars, these samples are indexed starting from 0, the samples are delimited by '******':\n" \
                "{{text_with_label}}" \

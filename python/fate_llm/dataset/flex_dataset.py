@@ -1,4 +1,6 @@
 import os.path
+from datasets import load_dataset
+from lm_eval.utils import apply_template
 
 from fate.ml.nn.dataset.base import Dataset
 from typing import List, Dict, Union, Literal
@@ -11,54 +13,83 @@ from ruamel import yaml
 logger = logging.getLogger(__name__)
 
 
+def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, data_part="train", save_path=None):
+    tokenizer.pad_token = tokenizer.eos_token
+    column_names = raw_datasets[data_part].column_names
+    def tokenize_function(examples):
+        column_names = examples.column_names
+        texts = examples[column_names[0]]
+        labels = examples[column_names[1]]
+        prompt_ids = []
+        for text, label in zip(texts, labels):
+            prefix = apply_template(tokenize_format,
+                                    {"sub_domain": sub_domain,
+                                     "label": label})
+            entry = prefix + text
+            ids = tokenizer(entry, return_tensors='pt')['input_ids']
+            prompt_ids.append(ids)
+        return prompt_ids
+
+    tokenized_datasets = raw_datasets.map(
+        tokenize_function,
+        batched=True,
+        num_proc=4,
+        remove_columns=column_names,
+        desc="Running tokenizer on dataset",
+    )
+
+    if save_path is not None:
+        tokenized_datasets.save_to_disk(save_path)
+
+    return tokenized_datasets
+
+
 class FlexDataset(Dataset):
 
     def __init__(self,
-                tokenizer_path,
-                input_template: str,
-                output_template: str,
-                max_input_length: int = 256,
-                max_target_length: int = 256,
-                load_from: Literal['jsonl', 'hf_load_from_disk', 'hf_load_dataset'] = 'hf_load_from_disk',
-                split_key: str = None,
-                config: Union[dict, str] = None
-                ):
+                 tokenizer_path,
+                 dataset_name: str,
+                 load_from: Literal['jsonl', 'hf_load_from_disk', 'hf_load_dataset', 'json'] = 'json',
+                 data_part: str = None,
+                 config: Union[dict, str] = None
+                 ):
 
         super().__init__()
         self.tokenizer = None
         self.tokenizer_path = tokenizer_path
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_path, trust_remote_code=True)
-        self.max_input_length = max_input_length
-        self.max_target_length = max_target_length
+        self.dataset_name = dataset_name
+        self.load_from = load_from
+        self.data_part = data_part
         self.dataset = None
         self.data_dict = None
-        self.load_from = load_from
-        self.input_template = Template(input_template)
-        self.output_template = Template(output_template)
-        self.split_key = split_key
-        self.max_seq_length = max_input_length + max_target_length + 1
+        self.ds = None
         self.label_key = None
         self.text_key = None
         self.augment_format = None
         self.filter_format = None
-        self.generate_format = None
+        self.tokenize_format = None
         self.random_state = None
         self.sub_domain = None
         self.label_list = None
+        self.need_preprocess = False
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
                 self.config = yaml.load(f)
 
-    def parse_config(self, config):
+    def parse_config(self, config=None):
+        if config is None:
+            config = self.config
         self.label_key = config.get("label_key", None)
         self.text_key = config.get("text_key", None)
         self.augment_format = config.get("augment_format", None)
         self.filter_format = config.get("filter_format", None)
-        self.generate_format = config.get("generate_format", None)
+        self.tokenize_format = config.get("tokenize_format", None)
         self.sub_domain = config.get("sub_domain", None)
         self.random_state = config.get("random_state", None)
         self.label_list = config.get("label_list", None)
+        self.need_preprocess = config.get("need_preprocess", False)
 
     def sample_data(self, sample_n=5, stratified=True):
         from sklearn.model_selection import StratifiedShuffleSplit
@@ -78,22 +109,7 @@ class FlexDataset(Dataset):
             sampled_data = FlexDataset.group_data_list(sampled_data, self.text_key, self.label_key)
         return sampled_data
 
-    def generate_text(self):
-        from lm_eval.utils import apply_template
-        self.tokenizer.pad_token = self.tokenizer.eos_token
-        if self.label_list is None:
-            self.label_list = list(set(self.data_dict['labels']))
-        ids_dict = {}
-        for label in self.label_list:
-            prompt = apply_template(self.generate_format,
-                                    {"sub_domain": self.sub_domain,
-                                     "label": label})
-            prompt_ids = self.tokenizer(prompt, return_tensors='pt')['input_ids']
-            ids_dict[label] = prompt_ids
-        return ids_dict
-
     def prepare_few_shot(self, shot_num=5):
-
         pass
 
     def augment_data(self):
@@ -110,11 +126,22 @@ class FlexDataset(Dataset):
         return data_dict
 
     def load(self, path):
-        if self.load_from == 'hf_load_from_disk':
+        local_data = load_dataset('json', {self.data_part: path})
+        if not self.need_preprocess:
+            self.ds = local_data
+        else:
+            tokenized_ds = tokenize_flex_dataset(
+                raw_datasets=local_data,
+                tokenizer=self.tokenizer,
+                sub_domain=self.sub_domain,
+                tokenize_format=self.tokenize_format
+            )
+            self.ds = tokenized_ds[self.data_part]
+        """if self.load_from == 'hf_load_from_disk':
             import datasets
             self.dataset = datasets.load_from_disk(path)
-            if self.split_key is not None:
-                self.dataset = self.dataset[self.split_key]
+            if self.data_part is not None:
+                self.dataset = self.dataset[self.data_part]
             self.dataset = [i for i in self.dataset]
         elif self.load_from == 'jsonl':
             import json
@@ -145,7 +172,7 @@ class FlexDataset(Dataset):
                     subdir_path = os.path.join(path, subdir)
                     for file_name in os.listdir(subdir_path):
                         if file_name.endswith(".json"):
-                            if not self.split_key or (self.split_key and file_name.startswith(self.split_key)):
+                            if not self.data_part or (self.data_part and file_name.startswith(self.data_part)):
                                 file_path = os.path.join(subdir_path, file_name)
                                 with open(file_path, 'r') as f:
                                     file_content = json.load(f)
@@ -158,7 +185,7 @@ class FlexDataset(Dataset):
                     for file_name in os.listdir(path):
                         if file_name.endswith(".json"):
                             # only 1 effective file will be kept
-                            if not self.split_key or (self.split_key and file_name.startswith(self.split_key)):
+                            if not self.data_part or (self.data_part and file_name.startswith(self.data_part)):
                                 file_path = os.path.join(path, file_name)
                                 with open(file_path, 'r') as f:
                                     file_content = json.load(f)
@@ -167,25 +194,25 @@ class FlexDataset(Dataset):
         elif self.load_from == 'hf_load_dataset':
             from datasets import load_dataset
             self.dataset = load_dataset(path)
-            if self.split_key is not None:
-                self.dataset = self.dataset[self.split_key]
+            if self.data_part is not None:
+                self.dataset = self.dataset[self.data_part]
             self.dataset = [i for i in self.dataset]
         else:
             raise ValueError('unknown load format')
 
         if not isinstance(self.dataset, list) or not isinstance(self.dataset[0], dict):
-            logger.warn('loaded dataset is expected to be a list of dict')
+            logger.warn('loaded dataset is expected to be a list of dict')"""
 
-    def tokenize_function(self, query):
+    def query_tokenize_function(self, query):
         tokenizer = self.tokenizer
 
         msg = [
             {"role": "system", "content": "You are a helpful assistant. "},
             {"role": "user", "content": query}
         ]
-        encodeds = tokenizer.apply_chat_template(msg, add_generation_prompt=True, tokenize=False)
+        encoded = tokenizer.apply_chat_template(msg, add_generation_prompt=True, tokenize=False)
 
-        return encodeds
+        return encoded
 
     def get_raw_dataset(self):
         return self.dataset
@@ -201,5 +228,4 @@ class FlexDataset(Dataset):
                 "label": self.data_dict["label"][i]}
 
     def __getitem__(self, i) -> dict:
-        item = self.get_item(i)
-        return item
+        return self.ds[i]
