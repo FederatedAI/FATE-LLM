@@ -44,6 +44,7 @@ class FlexDataset(Dataset):
         self.generate_format = None
         self.random_state = None
         self.sub_domain = None
+        self.label_list = None
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -57,6 +58,7 @@ class FlexDataset(Dataset):
         self.generate_format = config.get("generate_format", None)
         self.sub_domain = config.get("sub_domain", None)
         self.random_state = config.get("random_state", None)
+        self.label_list = config.get("label_list", None)
 
     def sample_data(self, sample_n=5, stratified=True):
         from sklearn.model_selection import StratifiedShuffleSplit
@@ -76,6 +78,20 @@ class FlexDataset(Dataset):
             sampled_data = FlexDataset.group_data_list(sampled_data, self.text_key, self.label_key)
         return sampled_data
 
+    def generate_text(self):
+        from lm_eval.utils import apply_template
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        if self.label_list is None:
+            self.label_list = list(set(self.data_dict['labels']))
+        ids_dict = {}
+        for label in self.label_list:
+            prompt = apply_template(self.generate_format,
+                                    {"sub_domain": self.sub_domain,
+                                     "label": label})
+            prompt_ids = self.tokenizer(prompt, return_tensors='pt')['input_ids']
+            ids_dict[label] = prompt_ids
+        return ids_dict
+
     def prepare_few_shot(self, shot_num=5):
 
         pass
@@ -85,7 +101,6 @@ class FlexDataset(Dataset):
 
     def cluster_data(self, data):
         pass
-
 
     @staticmethod
     def group_data_list(data_list, text_key, label_key):
@@ -185,35 +200,6 @@ class FlexDataset(Dataset):
         return {"text": self.data_dict["text"][i],
                 "label": self.data_dict["label"][i]}
 
-    def _process_item(self, data_item):
-
-        a_ids = self.tokenizer.encode(text=data_item['input'], add_special_tokens=True, truncation=True,
-                                      max_length=self.max_input_length)
-        b_ids = self.tokenizer.encode(text=data_item['output'], add_special_tokens=False, truncation=True,
-                                      max_length=self.max_target_length)
-
-        context_length = len(a_ids)
-        input_ids = a_ids + b_ids + [self.tokenizer.eos_token_id]
-        labels = [self.tokenizer.pad_token_id] * context_length + b_ids + [self.tokenizer.eos_token_id]
-
-        pad_len = self.max_seq_length - len(input_ids)
-        input_ids = input_ids + [self.tokenizer.pad_token_id] * pad_len
-        labels = labels + [self.tokenizer.pad_token_id] * pad_len
-        labels = [(l if l != self.tokenizer.pad_token_id else -100) for l in labels]
-
-        assert len(input_ids) == len(labels), f"length mismatch: {len(input_ids)} vs {len(labels)}"
-
-        return {
-            "input_ids": input_ids,
-            "labels": labels
-        }
-
-    def get_tokenized_item(self, i) -> dict:
-
-        str_item = self.get_str_item(i)
-        ret_dict = self._process_item(str_item)
-        return ret_dict
-
     def __getitem__(self, i) -> dict:
-        item = self.get_tokenized_item(i)
+        item = self.get_item(i)
         return item
