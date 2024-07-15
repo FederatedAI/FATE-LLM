@@ -8,8 +8,8 @@ metric_list:
   metric: accuracy
 output_type: generate_until
 task: yelp-review
-label_key: label
-text_key: stars
+label_key: stars
+text_key: text
 validation_split: train
 sub_domain: Health
 tokenize_format: "Product type: {{sub_domain}} | Review Score: {{label}}"

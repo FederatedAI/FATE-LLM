@@ -1,5 +1,5 @@
 dataset_kwargs:
-  data_files: ag_news_review/train.json
+  data_files: ag_news_review/AGnews/train.json
 dataset_path: json
 doc_to_target: '{{label}}'
 metric_list:
