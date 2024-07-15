@@ -83,7 +83,8 @@ class FlexDataset(Dataset):
                  dataset_name: str,
                  load_from: Literal['jsonl', 'hf_load_from_disk', 'hf_load_dataset', 'json'] = 'json',
                  data_part: str = None,
-                 config: Union[dict, str] = None
+                 config: Union[dict, str] = None,
+                 need_preprocess: bool = False
                  ):
 
         super().__init__()
@@ -104,7 +105,7 @@ class FlexDataset(Dataset):
         self.random_state = None
         self.sub_domain = None
         self.label_list = None
-        self.need_preprocess = True
+        self.need_preprocess = need_preprocess
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -122,7 +123,6 @@ class FlexDataset(Dataset):
         self.sub_domain = config.get("sub_domain", None)
         self.random_state = config.get("random_state", None)
         self.label_list = config.get("label_list", None)
-        self.need_preprocess = config.get("need_preprocess", True)
         self.few_shot_format = config.get("few_shot_format", None)
 
     def sample_data(self, dataset, sample_n=5, stratified=True):
@@ -196,71 +196,6 @@ class FlexDataset(Dataset):
                 label_key=self.label_key
             )
             self.ds = tokenized_ds[self.data_part]
-        """if self.load_from == 'hf_load_from_disk':
-            import datasets
-            self.dataset = datasets.load_from_disk(path)
-            if self.data_part is not None:
-                self.dataset = self.dataset[self.data_part]
-            self.dataset = [i for i in self.dataset]
-        elif self.load_from == 'jsonl':
-            import json
-            if path.endswith('.jsonl'):
-                with open(path, 'r') as f:
-                    json_lines = f.read().split('\n')
-                self.dataset = []
-                for i in json_lines:
-                    try:
-                        self.dataset.append(json.loads(i))
-                    except:
-                        print('skip line')
-        elif self.load_from =='json':
-            import json
-
-            if path.endswith('.json'):
-                with open(path, 'r') as f:
-                    self.dataset = json.load(f)
-                    self.data_dict = FlexDataset.group_data_list(self.dataset, self.text_key, self.label_key)
-            elif os.path.isdir(path):
-                data_dict = {}
-                # Check if base_dir has any subdirectories
-                subdirs = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
-                if subdirs:
-                    if self.sub_domain is None:
-                        raise ValueError(f"sub_domain is required for loading data from directory")
-                    subdir = [d if d == self.sub_domain for d in subdirs][0]
-                    subdir_path = os.path.join(path, subdir)
-                    for file_name in os.listdir(subdir_path):
-                        if file_name.endswith(".json"):
-                            if not self.data_part or (self.data_part and file_name.startswith(self.data_part)):
-                                file_path = os.path.join(subdir_path, file_name)
-                                with open(file_path, 'r') as f:
-                                    file_content = json.load(f)
-                                    data_dict= FlexDataset.group_data_list(file_content,
-                                                                           self.text_key,
-                                                                           self.label_key)
-
-                    self.data_dict = data_dict
-                else:
-                    for file_name in os.listdir(path):
-                        if file_name.endswith(".json"):
-                            # only 1 effective file will be kept
-                            if not self.data_part or (self.data_part and file_name.startswith(self.data_part)):
-                                file_path = os.path.join(path, file_name)
-                                with open(file_path, 'r') as f:
-                                    file_content = json.load(f)
-                                    self.dataset = file_content
-
-        elif self.load_from == 'hf_load_dataset':
-            from datasets import load_dataset
-            self.dataset = load_dataset(path)
-            if self.data_part is not None:
-                self.dataset = self.dataset[self.data_part]
-            self.dataset = [i for i in self.dataset]
-        else:
-            raise ValueError('unknown load format')
-
-        if not isinstance(self.dataset, list) or not isinstance(self.dataset[0], dict):
-            logger.warn('loaded dataset is expected to be a list of dict')"""
 
     def query_tokenize_function(self, query):
         tokenizer = self.tokenizer
