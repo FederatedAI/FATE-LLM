@@ -73,7 +73,7 @@ def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, 
         attention_mask = [i2 + i1 for i1, i2 in zip(texts['attention_mask'], labels['attention_mask'])]
         out = {"input_ids": input_ids,
                "attention_mask": attention_mask,
-               "labels": examples[label_key]}
+               "labels": input_ids}
         return out
 
     tokenized_datasets = raw_datasets.map(
@@ -121,6 +121,7 @@ class FlexDataset(Dataset):
         self.tokenize_format = None
         self.sub_domain = None
         self.label_list = None
+        self.text_with_label_format = None
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -138,6 +139,7 @@ class FlexDataset(Dataset):
         self.sub_domain = config.get("sub_domain", None)
         self.label_list = config.get("label_list", None)
         self.few_shot_format = config.get("few_shot_format", None)
+        self.text_with_label_format = config.get("text_with_label_format", None)
 
     def get_generate_prompt(self, tokenize=True):
         prompt_list = [apply_template(self.tokenize_format,
@@ -186,23 +188,6 @@ class FlexDataset(Dataset):
             data.append(encodeds)
         return data
 
-    """
-    def regex_filter(self, sample_list):
-        regex_pattern = jinja_to_regex(self.augment_format)
-        res = {'inputs': [], 'labels': []}
-        for i, sample in sample_list:
-            data_list = sample.split('\n\n')
-            for entry in data_list:
-                entry_label, entry_text = entry.split("\n")[0], entry.split("\n")[1]
-                match = re.search(regex_pattern, review_with_label)
-                if match:
-                    label = int(match.group(1)) if len(match.groups()) > 0 else None
-                    text = match.group(2).strip('</s>') if len(match.groups()) > 1 else None
-                    res['inputs'].append(text)
-                    res['labels'].append(label)
-        return res
-    """
-
     def regex_filter(self, sample_list):
         regex_pattern = jinja_to_regex(self.augment_format, ["label", "text"])
         res = {'inputs': [], 'labels': []}
@@ -222,12 +207,26 @@ class FlexDataset(Dataset):
                     res['labels'].append(label)
         return res
 
-    def parse_augmented_data(self, sample_list):
-        for i, sample in sample_list:
-            data_list = sample.split('\n\n')
+    def prepare_query_to_filter_clustered(self, clustered_sentences_list, clustered_labels_list):
+        prompt_list = []
+        for clustered_sentences, clustered_labels in zip(clustered_sentences_list, clustered_labels_list):
+            text_with_label = ''
+            for i in range(len(clustered_sentences)):
+                formatted_entry = apply_template(self.text_with_label_format, {"i": i,
+                                                                               "text": clustered_sentences[i],
+                                                                               "label": clustered_labels[i]})
+                text_with_label += formatted_entry
+            prompt_list.append((self.filter_format, {"text_with_label": text_with_label}))
+        return prompt_list
 
 
-    def filter_cluster_data(self, clustered_sentence, clustered_labels, response_list):
+    def parse_clustered_response(self, clustered_sentence, clustered_labels, response_list):
+        """
+        Parse the response from the clustering model and filter the data per cluster.
+        :param clustered_sentence: nested list of clustered sentences
+        :param clustered_labels: nested list of clustered labels
+        :param response_list: list of responses from the clustering model
+        """
         def parse_response(response):
             match = re.search(r"The eligible samples: (\d+(?:, \d+)*)", response)
             if match:
@@ -237,10 +236,11 @@ class FlexDataset(Dataset):
         filtered_text_list = []
         filtered_label_list = []
         for i in range(len(clustered_sentence)):
-            parsed_response = parse_response(response_list[i])
-            idx = [i for i in parsed_response is i < len(clustered_sentence[i])]
-            filtered_label_list.append([clustered_labels[i] for i in idx])
-            filtered_text_list.append([clustered_sentence[i] for i in idx])
+            parsed_response = parse_response(response_list[i][j])
+            for idx in parsed_response:
+                if idx < len(clustered_sentence[i]):
+                    filtered_label_list.append(clustered_labels[i][idx])
+                    filtered_text_list.append(clustered_sentence[i][idx])
         return filtered_text_list, filtered_label_list
 
     @staticmethod
@@ -281,10 +281,10 @@ class FlexDataset(Dataset):
         return self.dataset
 
     def __len__(self):
-        return len(self.dataset)
+        return len(self.ds)
 
     def get_item(self, i):
-        return self.dataset[i]
+        return self.dataset[self.data_part][i]
 
     def get_item_dict(self, i):
         return {"text": self.dataset[self.data_part][self.text_key][i],
