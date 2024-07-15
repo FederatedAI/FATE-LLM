@@ -59,7 +59,8 @@ def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, 
         input_ids = [i2 + i1 for i1, i2 in zip(texts['input_ids'], labels['input_ids'])]
         attention_mask = [i2 + i1 for i1, i2 in zip(texts['attention_mask'], labels['attention_mask'])]
         out = {"input_ids": input_ids,
-               "attention_mask": attention_mask}
+               "attention_mask": attention_mask,
+               "labels": examples[label_key]}
         return out
 
     tokenized_datasets = raw_datasets.map(
@@ -84,7 +85,8 @@ class FlexDataset(Dataset):
                  load_from: Literal['jsonl', 'hf_load_from_disk', 'hf_load_dataset', 'json'] = 'json',
                  data_part: str = None,
                  config: Union[dict, str] = None,
-                 need_preprocess: bool = False
+                 need_preprocess: bool = True,
+                 random_state: int = None
                  ):
 
         super().__init__()
@@ -94,6 +96,8 @@ class FlexDataset(Dataset):
         self.dataset_name = dataset_name
         self.load_from = load_from
         self.data_part = data_part
+        self.random_state = random_state
+        self.need_preprocess = need_preprocess
         self.dataset = None
         self.ds = None
         self.label_key = None
@@ -102,10 +106,8 @@ class FlexDataset(Dataset):
         self.filter_format = None
         self.few_shot_format = None
         self.tokenize_format = None
-        self.random_state = None
         self.sub_domain = None
         self.label_list = None
-        self.need_preprocess = need_preprocess
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -121,7 +123,6 @@ class FlexDataset(Dataset):
         self.filter_format = config.get("filter_format", None)
         self.tokenize_format = config.get("tokenize_format", None)
         self.sub_domain = config.get("sub_domain", None)
-        self.random_state = config.get("random_state", None)
         self.label_list = config.get("label_list", None)
         self.few_shot_format = config.get("few_shot_format", None)
 
