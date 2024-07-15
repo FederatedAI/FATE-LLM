@@ -108,7 +108,7 @@ class FlexDataset(Dataset):
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
-                self.config = yaml.load(f)
+                self.config = yaml.safe_load(f)
         self.parse_config()
 
     def parse_config(self, config=None):

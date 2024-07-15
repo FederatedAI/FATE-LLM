@@ -2,7 +2,6 @@ dataset_kwargs:
   data_files: ag_news_review/train.json
 dataset_path: json
 doc_to_target: '{{label}}'
-doc_to_text:  !function 'ag_news_utils.doc_to_text'
 metric_list:
 - aggregation: mean
   higher_is_better: true
@@ -14,14 +13,9 @@ label_key: label
 text_key: text
 sub_domain: AGnews
 tokenize_format: "Product type: {{sub_domain}} | Text Category: {{label}}"
-augment_format: "The news' topics belong to the following 4 categories: 0.world 1.sports 2.business 3.science and technology. 
-Please generate news according to the following format, bearing in mind that the generated results should not resemble the examples, 
-but should align with the specified category: \n"
-filter_format: "I will give you some news samples with their categories, The news' topics belong to the following 4 categories: 0.world 1.sports 2.business 3.science and technology. the samples are delimited by '******':\n" \
-               "{text_with_label}" \
-               "Please filter out texts that are ambiguous, do not belong to news or do not meet the categories, and leave news texts that meet the categories.\n" \
-               "You should also filter out news text that are too similar to other samples and keep the most representative ones."\
-               "Your answer should begin with 'The eligible samples:\n\n' and the indexes of the texts you choose, use spaces to separate the indexes and do not provide duplicate indices or indices that exceed the maximum index of samples."
+few_shot_format: "- <Category>: {{label}}.\n- <News>: {{text}}\n\n******"
+augment_format: "The news' topics belong to the following 4 categories: 0.world 1.sports 2.business 3.science and technology. Please generate news according to the following format, bearing in mind that the generated results should not resemble the examples, but should align with the specified category: \n"
+filter_format: "I will give you some news samples with their categories, The news' topics belong to the following 4 categories: 0.world 1.sports 2.business 3.science and technology. the samples are delimited by '******':\n {text_with_label} Please filter out texts that are ambiguous, do not belong to news or do not meet the categories, and leave news texts that meet the categories.\n You should also filter out news text that are too similar to other samples and keep the most representative ones. Your answer should begin with 'The eligible samples:\n\n' and the indexes of the texts you choose, use spaces to separate the indexes and do not provide duplicate indices or indices that exceed the maximum index of samples."
 label_list:
   - 'world'
   - 'sports'
