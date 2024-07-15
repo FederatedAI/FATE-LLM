@@ -183,7 +183,8 @@ class FlexDataset(Dataset):
         return data_dict
 
     def load(self, path):
-        local_data = load_dataset('json', {self.data_part: path})
+        print(f"loading data from {path}, data_part: {self.data_part}")
+        local_data = load_dataset('json', data_files={self.data_part: path})
         self.dataset = local_data
         if not self.need_preprocess:
             self.ds = local_data
