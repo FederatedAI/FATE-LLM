@@ -45,22 +45,22 @@ def apply_template(template, data):
     return Template(template).render(data)
 
 
-def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, data_part="train", save_path=None):
+def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, text_key, label_key, data_part="train", save_path=None):
     tokenizer.pad_token = tokenizer.eos_token
     column_names = raw_datasets[data_part].column_names
+
+    print(f"raw colum names: {raw_datasets[data_part].column_names}")
     def tokenize_function(examples):
-        column_names = examples.column_names
-        texts = examples[column_names[0]]
-        labels = examples[column_names[1]]
-        prompt_ids = []
-        for text, label in zip(texts, labels):
-            prefix = apply_template(tokenize_format,
-                                    {"sub_domain": sub_domain,
-                                     "label": label})
-            entry = prefix + text
-            ids = tokenizer(entry, return_tensors='pt')['input_ids']
-            prompt_ids.append(ids)
-        return prompt_ids
+        texts = tokenizer(examples[text_key])
+
+        label_processed = [apply_template(tokenize_format,
+                                    {"sub_domain": sub_domain, "label": label}) for label in examples[label_key]]
+        labels = tokenizer(label_processed)
+        input_ids = [i2 + i1 for i1, i2 in zip(texts['input_ids'], labels['input_ids'])]
+        attention_mask = [i2 + i1 for i1, i2 in zip(texts['attention_mask'], labels['attention_mask'])]
+        out = {"input_ids": input_ids,
+               "attention_mask": attention_mask}
+        return out
 
     tokenized_datasets = raw_datasets.map(
         tokenize_function,
@@ -104,7 +104,7 @@ class FlexDataset(Dataset):
         self.random_state = None
         self.sub_domain = None
         self.label_list = None
-        self.need_preprocess = False
+        self.need_preprocess = True
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -122,7 +122,7 @@ class FlexDataset(Dataset):
         self.sub_domain = config.get("sub_domain", None)
         self.random_state = config.get("random_state", None)
         self.label_list = config.get("label_list", None)
-        self.need_preprocess = config.get("need_preprocess", False)
+        self.need_preprocess = config.get("need_preprocess", True)
         self.few_shot_format = config.get("few_shot_format", None)
 
     def sample_data(self, dataset, sample_n=5, stratified=True):
@@ -144,9 +144,8 @@ class FlexDataset(Dataset):
         return sampled_data
 
     def prepare_few_shot(self, shot_num=5):
-        dataset = self.dataset
-        if self.data_part:
-            dataset = self.dataset[self.data_part]
+        # dataset = self.dataset
+        dataset = self.dataset[self.data_part]
         sampled_data = self.sample_data(dataset=dataset, sample_n=shot_num)
         # apply template
         few_shot_data = []
@@ -183,7 +182,6 @@ class FlexDataset(Dataset):
         return data_dict
 
     def load(self, path):
-        print(f"loading data from {path}, data_part: {self.data_part}")
         local_data = load_dataset('json', data_files={self.data_part: path})
         self.dataset = local_data
         if not self.need_preprocess:
@@ -193,7 +191,9 @@ class FlexDataset(Dataset):
                 raw_datasets=local_data,
                 tokenizer=self.tokenizer,
                 sub_domain=self.sub_domain,
-                tokenize_format=self.tokenize_format
+                tokenize_format=self.tokenize_format,
+                text_key=self.text_key,
+                label_key=self.label_key
             )
             self.ds = tokenized_ds[self.data_part]
         """if self.load_from == 'hf_load_from_disk':
@@ -283,8 +283,8 @@ class FlexDataset(Dataset):
         return self.dataset[i]
 
     def get_item_dict(self, i):
-        return {"text": self.dataset[self.text_key][i],
-                "label": self.dataset[self.label_key][i]}
+        return {"text": self.dataset[self.data_part][self.text_key][i],
+                "label": self.dataset[self.data_part][self.label_key][i]}
 
     def __getitem__(self, i) -> dict:
         return self.ds[i]
