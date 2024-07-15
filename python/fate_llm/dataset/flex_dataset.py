@@ -13,12 +13,18 @@ from ruamel import yaml
 logger = logging.getLogger(__name__)
 
 
-def jinja_to_regex(jinja_format):
+"""def jinja_to_regex(jinja_format):
     pattern = re.sub(r"{{[^}]+}}", r"(.*)", jinja_format)
-    pattern = re.escape(pattern)
-    # pattern = pattern.replace(r"\(P<\w+>.*\)", r"(.*)")
-    return pattern
+    return pattern"""
 
+
+def jinja_to_regex(template, placeholders):
+    regex_template = re.escape(template)
+    for placeholder in placeholders:
+        regex_template = regex_template.replace(re.escape(f'{{{{{placeholder}}}}}'), f'(?P<{placeholder}>.*?)')
+    pattern = re.compile(regex_template)
+
+    return pattern
 
 def regex_replace(string, pattern, repl, count: int = 0):
     """
@@ -180,15 +186,40 @@ class FlexDataset(Dataset):
             data.append(encodeds)
         return data
 
-    def regex_filter(self, data_list):
+    """
+    def regex_filter(self, sample_list):
         regex_pattern = jinja_to_regex(self.augment_format)
         res = {'inputs': [], 'labels': []}
-        for review_with_label in data_list:
-            match = re.search(regex_pattern, review_with_label)
-            if match:
-                rating, review = int(match.group(1)), match.group(2).strip('</s>')
-                res['inputs'].append(review)
-                res['labels'].append(rating)
+        for i, sample in sample_list:
+            data_list = sample.split('\n\n')
+            for entry in data_list:
+                entry_label, entry_text = entry.split("\n")[0], entry.split("\n")[1]
+                match = re.search(regex_pattern, review_with_label)
+                if match:
+                    label = int(match.group(1)) if len(match.groups()) > 0 else None
+                    text = match.group(2).strip('</s>') if len(match.groups()) > 1 else None
+                    res['inputs'].append(text)
+                    res['labels'].append(label)
+        return res
+    """
+
+    def regex_filter(self, sample_list):
+        regex_pattern = jinja_to_regex(self.augment_format, ["label", "text"])
+        res = {'inputs': [], 'labels': []}
+        for i, sample in sample_list:
+            data_list = sample.split('\n\n')
+            for entry in data_list:
+                match = regex_pattern.match(entry)
+                if match:
+                    if isinstance(self.label_list[0], int):
+                        label = int(match.groupdict()['label'])
+                    elif isinstance(self.label_list[0], float):
+                        label = float(match.groupdict()['label'])
+                    else:
+                        label = match.groupdict()['label']
+                    text = match.groupdict()['text'].strip('</s>')
+                    res['inputs'].append(text)
+                    res['labels'].append(label)
         return res
 
     def parse_augmented_data(self, sample_list):
