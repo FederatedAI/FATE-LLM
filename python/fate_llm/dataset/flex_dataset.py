@@ -13,6 +13,13 @@ from ruamel import yaml
 logger = logging.getLogger(__name__)
 
 
+def jinja_to_regex(jinja_format):
+    pattern = re.sub(r"{{[^}]+}}", r"(.*)", jinja_format)
+    pattern = re.escape(pattern)
+    # pattern = pattern.replace(r"\(P<\w+>.*\)", r"(.*)")
+    return pattern
+
+
 def regex_replace(string, pattern, repl, count: int = 0):
     """
     adopted from lm-evaluation-harness/lm-eval/utils.py for offline use
@@ -126,6 +133,15 @@ class FlexDataset(Dataset):
         self.label_list = config.get("label_list", None)
         self.few_shot_format = config.get("few_shot_format", None)
 
+    def get_generate_prompt(self, tokenize=True):
+        prompt_list = [apply_template(self.tokenize_format,
+                                      {"sub_domain": self.sub_domain,
+                                       "label": label}) for label in self.label_list]
+        if tokenize:
+            tokenized_prompts = self.tokenizer(prompt_list)
+            return tokenized_prompts['input_ids']
+        return prompt_list
+
     def sample_data(self, dataset, sample_n=5, stratified=True):
         from sklearn.model_selection import StratifiedShuffleSplit
         if stratified:
@@ -164,16 +180,37 @@ class FlexDataset(Dataset):
             data.append(encodeds)
         return data
 
-    def regex_filter(self, data):
-        pass
+    def regex_filter(self, data_list):
+        regex_pattern = jinja_to_regex(self.augment_format)
+        res = {'inputs': [], 'labels': []}
+        for review_with_label in data_list:
+            match = re.search(regex_pattern, review_with_label)
+            if match:
+                rating, review = int(match.group(1)), match.group(2).strip('</s>')
+                res['inputs'].append(review)
+                res['labels'].append(rating)
+        return res
 
     def parse_augmented_data(self, sample_list):
         for i, sample in sample_list:
             data_list = sample.split('\n\n')
 
 
-    def filter_cluster_data(self, clustered_data):
-        pass
+    def filter_cluster_data(self, clustered_sentence, clustered_labels, response_list):
+        def parse_response(response):
+            match = re.search(r"The eligible samples: (\d+(?:, \d+)*)", response)
+            if match:
+                return [int(num) for num in match.group(1).split(',')]
+            else:
+                return []
+        filtered_text_list = []
+        filtered_label_list = []
+        for i in range(len(clustered_sentence)):
+            parsed_response = parse_response(response_list[i])
+            idx = [i for i in parsed_response is i < len(clustered_sentence[i])]
+            filtered_label_list.append([clustered_labels[i] for i in idx])
+            filtered_text_list.append([clustered_sentence[i] for i in idx])
+        return filtered_text_list, filtered_label_list
 
     @staticmethod
     def group_data_list(data_list, text_key, label_key):
