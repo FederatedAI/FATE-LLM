@@ -251,7 +251,7 @@ class FlexDataset(Dataset):
         filtered_text_list = []
         filtered_label_list = []
         for i in range(len(clustered_sentence)):
-            parsed_response = parse_response(response_list[i][j])
+            parsed_response = parse_response(response_list[i])
             for idx in parsed_response:
                 if idx < len(clustered_sentence[i]):
                     filtered_label_list.append(clustered_labels[i][idx])
