@@ -70,7 +70,7 @@ def apply_template(template, data):
 
 
 def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, text_key, label_key, data_part="train",
-                          save_path=None):
+                          save_path=None, max_prompt_len=256):
     tokenizer.pad_token = tokenizer.eos_token
     column_names = raw_datasets[data_part].column_names
 
@@ -84,6 +84,13 @@ def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, 
         labels = tokenizer(label_processed)
         input_ids = [i2 + i1 for i1, i2 in zip(texts['input_ids'], labels['input_ids'])]
         attention_mask = [i2 + i1 for i1, i2 in zip(texts['attention_mask'], labels['attention_mask'])]
+
+        """
+        cut off max prompt length
+        """
+        input_ids = [t[: max_prompt_len] for t in input_ids]
+        attention_mask = [t[: max_prompt_len] for t in attention_mask]
+
         out = {"input_ids": input_ids,
                "attention_mask": attention_mask,
                "labels": input_ids}
@@ -112,7 +119,9 @@ class FlexDataset(Dataset):
                  data_part: str = None,
                  config: Union[dict, str] = None,
                  need_preprocess: bool = True,
-                 random_state: int = None
+                 random_state: int = None,
+                 max_prompt_len: int = 256,
+                 select_num: int = None,
                  ):
 
         super().__init__()
@@ -124,6 +133,8 @@ class FlexDataset(Dataset):
         self.data_part = data_part
         self.random_state = random_state
         self.need_preprocess = need_preprocess
+        self.max_prompt_len = max_prompt_len
+        self.select_num = select_num
         self.dataset = None
         self.ds = None
         self.label_key = None
@@ -154,12 +165,12 @@ class FlexDataset(Dataset):
         self.few_shot_format = config.get("few_shot_format", None)
         self.text_with_label_format = config.get("text_with_label_format", None)
 
-    def get_generate_prompt(self, tokenize=True):
+    def get_generate_prompt(self, tokenize=True, return_tensors="pt"):
         prompt_list = [apply_template(self.tokenize_format,
                                       {"sub_domain": self.sub_domain,
                                        "label": label}) for label in self.label_list]
         if tokenize:
-            tokenized_prompts = self.tokenizer(prompt_list)
+            tokenized_prompts = self.tokenizer(prompt_list, return_tensors=return_tensors)
             prompt_list = tokenized_prompts['input_ids']
 
         return {label: prompt for label, prompt in zip(self.label_list, prompt_list)}
@@ -282,6 +293,9 @@ class FlexDataset(Dataset):
                 label_key=self.label_key
             )
             self.ds = tokenized_ds[self.data_part]
+
+        if self.select_num is not None:
+            self.ds = self.ds.select(range(self.select_num))
 
     def apply_chat_template(self, query):
         tokenizer = self.tokenizer
