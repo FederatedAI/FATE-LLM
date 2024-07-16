@@ -209,7 +209,7 @@ class FlexDataset(Dataset):
         data = []
         for i, sample in enumerate(few_shot_samples):
             query = self.augment_format + '\n' + sample
-            encodeds = self.query_tokenize_function(query)
+            encodeds = self.apply_chat_template(query)
             data.append(encodeds)
         return data
 
