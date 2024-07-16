@@ -147,8 +147,9 @@ class FlexDataset(Dataset):
                                        "label": label}) for label in self.label_list]
         if tokenize:
             tokenized_prompts = self.tokenizer(prompt_list)
-            return tokenized_prompts['input_ids']
-        return prompt_list
+            prompt_list = tokenized_prompts['input_ids']
+
+        return {label: prompt for label, prompt in zip(self.label_list, prompt_list)}
 
     def sample_data(self, dataset, sample_n=5, stratified=True):
         from sklearn.model_selection import StratifiedShuffleSplit
