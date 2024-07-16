@@ -1,21 +1,30 @@
-import os.path
-from datasets import load_dataset
+#
+#  Copyright 2024 The FATE Authors. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+
+import logging
 import re
+from datasets import load_dataset
+from jinja2 import Template
+from ruamel import yaml
+from transformers import AutoTokenizer
+from typing import Union, Literal
 
 from fate.ml.nn.dataset.base import Dataset
-from typing import Union, Literal
-import logging
-from jinja2 import Template
-from transformers import AutoTokenizer
-from ruamel import yaml
-
 
 logger = logging.getLogger(__name__)
-
-
-"""def jinja_to_regex(jinja_format):
-    pattern = re.sub(r"{{[^}]+}}", r"(.*)", jinja_format)
-    return pattern"""
 
 
 def jinja_to_regex(template, placeholders):
@@ -25,6 +34,7 @@ def jinja_to_regex(template, placeholders):
     pattern = re.compile(regex_template)
 
     return pattern
+
 
 def regex_replace(string, pattern, repl, count: int = 0):
     """
@@ -58,16 +68,18 @@ def apply_template(template, data):
     return Template(template).render(data)
 
 
-def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, text_key, label_key, data_part="train", save_path=None):
+def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, text_key, label_key, data_part="train",
+                          save_path=None):
     tokenizer.pad_token = tokenizer.eos_token
     column_names = raw_datasets[data_part].column_names
 
     print(f"raw colum names: {raw_datasets[data_part].column_names}")
+
     def tokenize_function(examples):
         texts = tokenizer(examples[text_key])
 
-        label_processed = [apply_template(tokenize_format,
-                                    {"sub_domain": sub_domain, "label": label}) for label in examples[label_key]]
+        label_processed = [apply_template(tokenize_format,{"sub_domain": sub_domain,"label": label})
+                           for label in examples[label_key]]
         labels = tokenizer(label_processed)
         input_ids = [i2 + i1 for i1, i2 in zip(texts['input_ids'], labels['input_ids'])]
         attention_mask = [i2 + i1 for i1, i2 in zip(texts['attention_mask'], labels['attention_mask'])]
@@ -95,7 +107,7 @@ class FlexDataset(Dataset):
     def __init__(self,
                  tokenizer_path,
                  dataset_name: str,
-                 load_from: Literal['jsonl', 'hf_load_from_disk', 'hf_load_dataset', 'json'] = 'json',
+                 load_from: Literal['json'] = 'json',
                  data_part: str = None,
                  config: Union[dict, str] = None,
                  need_preprocess: bool = True,
@@ -198,14 +210,15 @@ class FlexDataset(Dataset):
                 match = regex_pattern.match(entry)
                 if match:
                     if isinstance(self.label_list[0], int):
-                        label = int(match.groupdict()['label'])
+                        label = int(match.groupdict().get('label'))
                     elif isinstance(self.label_list[0], float):
-                        label = float(match.groupdict()['label'])
+                        label = float(match.groupdict().get('label'))
                     else:
-                        label = match.groupdict()['label']
-                    text = match.groupdict()['text'].strip('</s>')
-                    res['inputs'].append(text)
-                    res['labels'].append(label)
+                        label = match.groupdict().get('label')
+                    text = match.groupdict().get('text').strip('</s>')
+                    if label and text:
+                        res['inputs'].append(text)
+                        res['labels'].append(label)
         return res
 
     def prepare_query_to_filter_clustered(self, clustered_sentences_list, clustered_labels_list):
@@ -217,9 +230,8 @@ class FlexDataset(Dataset):
                                                                                "text": clustered_sentences[i],
                                                                                "label": clustered_labels[i]})
                 text_with_label += formatted_entry
-            prompt_list.append((self.filter_format, {"text_with_label": text_with_label}))
+            prompt_list.append(apply_template(self.filter_format, {"text_with_label": text_with_label}))
         return prompt_list
-
 
     def parse_clustered_response(self, clustered_sentence, clustered_labels, response_list):
         """
@@ -228,12 +240,14 @@ class FlexDataset(Dataset):
         :param clustered_labels: nested list of clustered labels
         :param response_list: list of responses from the clustering model
         """
+
         def parse_response(response):
             match = re.search(r"The eligible samples: (\d+(?:, \d+)*)", response)
             if match:
                 return [int(num) for num in match.group(1).split(',')]
             else:
                 return []
+
         filtered_text_list = []
         filtered_label_list = []
         for i in range(len(clustered_sentence)):
