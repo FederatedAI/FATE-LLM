@@ -17,6 +17,7 @@
 import logging
 import re
 from datasets import load_dataset
+from fastchat.model import get_conversation_template
 from jinja2 import Template
 from ruamel import yaml
 from transformers import AutoTokenizer
@@ -230,7 +231,8 @@ class FlexDataset(Dataset):
                                                                                "text": clustered_sentences[i],
                                                                                "label": clustered_labels[i]})
                 text_with_label += formatted_entry
-            prompt_list.append(apply_template(self.filter_format, {"text_with_label": text_with_label}))
+            cluster_query = apply_template(self.filter_format, {"text_with_label": text_with_label})
+            prompt_list.append(self.apply_chat_template(cluster_query))
         return prompt_list
 
     def parse_clustered_response(self, clustered_sentence, clustered_labels, response_list):
@@ -281,16 +283,22 @@ class FlexDataset(Dataset):
             )
             self.ds = tokenized_ds[self.data_part]
 
-    def query_tokenize_function(self, query):
+    def apply_chat_template(self, query):
         tokenizer = self.tokenizer
 
-        msg = [
-            {"role": "system", "content": "You are a helpful assistant. "},
-            {"role": "user", "content": query}
-        ]
-        encoded = tokenizer.apply_chat_template(msg, add_generation_prompt=True, tokenize=False)
+        if "llama-3" in self.tokenizer_path.lower():
+            msg = [
+                {"role": "system", "content": "You are a helpful assistant. "},
+                {"role": "user", "content": query}
+            ]
+            prompt = tokenizer.apply_chat_template(msg, add_generation_prompt=True, tokenize=False)
+        else:
+            conv = get_conversation_template(self.tokenizer_path)
+            conv.append_message(conv.roles[0], query)
+            conv.append_message(conv.roles[1], None)
+            prompt = conv.get_prompt()
 
-        return encoded
+        return prompt
 
     def get_raw_dataset(self):
         return self.dataset
