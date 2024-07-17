@@ -1,5 +1,5 @@
 dataset_kwargs:
-  data_files: dolly_15k/databricks-dolly-15k-short.jsonl
+  data_files: databricks-dolly-15k-short.jsonl
 dataset_path: json
 doc_to_target: '{{response}}'
 doc_to_text: !function 'dolly_utils.doc_to_text'
