@@ -192,6 +192,7 @@ class FlexDataset(Dataset):
             print(f"label: {label}, samples len: {len(samples)}")
             min_len = min(len(samples), sample_n)
             select_samples = resample(samples, replace=False, n_samples=min_len, random_state=random_state)
+            print(f"label: {label}, select samples: {len(samples)}")
             sampled_text.extend(select_samples)
             sampled_label.extend([label] * min_len)
 
@@ -216,6 +217,7 @@ class FlexDataset(Dataset):
         few_shot_data = FlexDataset.group_text_label_list(text_list=sampled_text,
                                                           label_list=sampled_label,
                                                           format=self.few_shot_format)
+        print(f"few_shot_len: {len(few_shot_data)}")
         return few_shot_data
 
     def prepare_augment(self, text_list, label_list):
