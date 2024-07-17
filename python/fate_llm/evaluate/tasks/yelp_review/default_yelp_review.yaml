@@ -12,10 +12,10 @@ label_key: stars
 text_key: text
 validation_split: train
 sub_domain: Health
-few_shot_num: 5
+few_shot_num_per_label: 2
 tokenize_format: "Product type: {{sub_domain}} | Review Score: {{label}}"
 text_with_label_format: "******\n {{i}}.\nReview: {{text}}\nRating stars: {{label}}.\n"
-few_shot_format: "******\n- <Rating>: {{label}} stars.\n- <Review>: {{text}\n\n******"
+few_shot_format: "******\n- <Rating>: {{label}} stars.\n- <Review>: {{text}}\n\n******"
 augment_format: "The reviews are rated from 1 to 5 stars, with 1 being the worst, 3 being neutral and 5 being the best. Please generate more similar samples for each rating star about the Health domain as shown in the following format, bearing in mind that the generated results should not copy or resemble the examples, and should align with the {{sub_domain}} domain and the rating stars.\nThe examples are delimited by '******'."
 filter_format: "I will give you some customer review text samples with their rating stars, these samples are indexed starting from 0, the samples are delimited by '******':\n {{text_with_label}}. These reviews gradually shift from negative to positive from 1 star to 5 stars. 1 star represents the worst, 2 stars are better than 1 star, but still indicate a negative review. 3 stars represent a neutral review. 4 stars indicate a positive review, but less positive than 5 stars. 5 stars represent perfection.\n Please filter out text that does not belong to customer reviews or does not meet the rating stars, and leave review texts that meet the labels.\n You should also filter out text that are too similar to other samples and keep the most representative ones. Your answer should begin with 'The eligible samples:\n\n' and the indexes of the texts you choose, use spaces to separate the indexes and do not provide duplicate indices or indices that exceed the maximum index of samples."
 label_list:

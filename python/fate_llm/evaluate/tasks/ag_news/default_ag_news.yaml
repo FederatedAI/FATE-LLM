@@ -12,7 +12,7 @@ validation_split: train
 label_key: label
 text_key: text
 sub_domain: AGnews
-few_shot_num: 5
+few_shot_num_per_label: 2
 tokenize_format: "Product type: {{sub_domain}} | Text Category: {{label}}"
 few_shot_format: "- <Category>: {{label}}.\n- <News>: {{text}}\n\n******"
 augment_format: "The news' topics belong to the following 4 categories: 0.world 1.sports 2.business 3.science and technology. Please generate news according to the following format, bearing in mind that the generated results should not resemble the examples, but should align with the specified category: \n"
