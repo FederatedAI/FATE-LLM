@@ -12,6 +12,7 @@ label_key: stars
 text_key: text
 validation_split: train
 sub_domain: Health
+few_shot_num: 5
 tokenize_format: "Product type: {{sub_domain}} | Review Score: {{label}}"
 text_with_label_format: "******\n {{i}}.\nReview: {{text}}\nRating stars: {{label}}.\n"
 few_shot_format: "******\n- <Rating>: {{label}} stars.\n- <Review>: {{text}\n\n******"

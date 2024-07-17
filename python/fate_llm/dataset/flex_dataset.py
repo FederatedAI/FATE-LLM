@@ -120,6 +120,7 @@ class FlexDataset(Dataset):
                  random_state: int = None,
                  max_prompt_len: int = 256,
                  select_num: int = None,
+                 few_shot_num: int = None
                  ):
 
         super().__init__()
@@ -144,6 +145,7 @@ class FlexDataset(Dataset):
         self.sub_domain = None
         self.label_list = None
         self.text_with_label_format = None
+        self.few_shot_format = few_shot_num
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -162,6 +164,8 @@ class FlexDataset(Dataset):
         self.label_list = config.get("label_list", None)
         self.few_shot_format = config.get("few_shot_format", None)
         self.text_with_label_format = config.get("text_with_label_format", None)
+        if self.few_shot_format is None:
+            self.few_shot_format = config.get("few_shot_num", 5)
 
     def get_generate_prompt(self, tokenize=True, return_tensors="pt"):
         prompt_list = [apply_template(self.tokenize_format,
@@ -201,10 +205,10 @@ class FlexDataset(Dataset):
             group_data = [{"text": text, "label": label} for text, label in zip(text_list, label_list)]
         return group_data
 
-    def prepare_few_shot(self, text_list, label_list, shot_num=5):
+    def prepare_few_shot(self, text_list, label_list):
         sampled_text, sampled_label = FlexDataset.sample_data(text_list=text_list,
                                                        label_list=label_list,
-                                                       sample_n=shot_num,
+                                                       sample_n=self.few_shot_format,
                                                        random_state=self.random_state)
         few_shot_data = FlexDataset.group_text_label_list(text_list=sampled_text,
                                                           label_list=sampled_label,
