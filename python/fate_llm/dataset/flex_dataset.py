@@ -177,27 +177,8 @@ class FlexDataset(Dataset):
 
         return {label: prompt for label, prompt in zip(self.label_list, prompt_list)}
 
-    """
     @staticmethod
-    def sample_data(text_list, label_list, sample_n=5, stratified=True, random_state=None):
-        from sklearn.model_selection import StratifiedShuffleSplit
-        if stratified:
-            sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_n, random_state=random_state)
-            _, test_index = sss.split(text_list, label_list)
-            sampled_text = [text_list[i] for i in test_index]
-            sampled_label = [label_list[i] for i in test_index]
-        else:
-            from sklearn.utils import resample
-            choices = resample(list(range(len(label_list))),
-                               replace=False,
-                               n_samples=sample_n,
-                               random_state=random_state)
-            sampled_text = [text_list[i] for i in choices]
-            sampled_label = [label_list[i] for i in choices]
-        return sampled_text, sampled_label"""
-
-    @staticmethod
-    def sample_data(text_list, label_list, label_set, sample_n=2,  random_state=None):
+    def sample_data(text_list, label_list, label_set, sample_n=2, random_state=None):
         from sklearn.utils import resample
         from collections import defaultdict
         data_dict = defaultdict(list)
@@ -226,9 +207,10 @@ class FlexDataset(Dataset):
 
     def prepare_few_shot(self, text_list, label_list):
         sampled_text, sampled_label = FlexDataset.sample_data(text_list=text_list,
-                                                       label_list=label_list,
-                                                       sample_n=self.few_shot_format,
-                                                       random_state=self.random_state)
+                                                              label_list=label_list,
+                                                              label_set=self.label_list,
+                                                              sample_n=self.few_shot_num_per_sample,
+                                                              random_state=self.random_state)
         few_shot_data = FlexDataset.group_text_label_list(text_list=sampled_text,
                                                           label_list=sampled_label,
                                                           format=self.few_shot_format)
