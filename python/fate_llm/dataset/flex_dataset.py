@@ -182,12 +182,14 @@ class FlexDataset(Dataset):
         from sklearn.utils import resample
         from collections import defaultdict
         data_dict = defaultdict(list)
+        print(f"label_set: {label_set}")
         for text, label in zip(text_list, label_list):
             # in case extra labels are present, ignore
             if label in label_set:
                 data_dict[label].append(text)
         sampled_text, sampled_label = [], []
         for label, samples in data_dict.items():
+            print(f"label: {label}, samples len: {len(samples)}")
             min_len = min(len(samples), sample_n)
             select_samples = resample(samples, replace=False, n_samples=min_len, random_state=random_state)
             sampled_text.extend(select_samples)
@@ -225,7 +227,7 @@ class FlexDataset(Dataset):
             data.append(formatted_query)
         return data
 
-    def regex_filter(self, sample_list):
+    def abstract_from_augmented(self, sample_list):
         regex_pattern = jinja_to_regex(self.augment_format, ["label", "text"])
         res = {'inputs': [], 'labels': []}
         for i, sample in sample_list:
