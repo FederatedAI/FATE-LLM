@@ -186,33 +186,37 @@ class FlexDataset(Dataset):
             # in case extra labels are present, ignore
             if label in label_set:
                 data_dict[label].append(text)
-        sampled_text, sampled_label = [], []
+        sampled_text = defaultdict(list)
         for label, samples in data_dict.items():
             min_len = min(len(samples), sample_n)
             select_samples = resample(samples, replace=False, n_samples=min_len, random_state=random_state)
-            sampled_text.extend(select_samples)
-            sampled_label.extend([label] * min_len)
+            sampled_text[label].extend(select_samples)
 
-        return sampled_text, sampled_label
+        return sampled_text
 
     @staticmethod
-    def group_text_label_list(text_list, label_list, format=None):
-        group_data = []
-        if format:
-            for text, label in zip(text_list, label_list):
-                group_data.append(apply_template(format, {"text": text, "label": label}))
-        else:
-            group_data = [{"text": text, "label": label} for text, label in zip(text_list, label_list)]
+    def group_text_label_list(text_list, label_list):
+        group_data = [{"text": text, "label": label} for text, label in zip(text_list, label_list)]
         return group_data
 
+    @staticmethod
+    def concatenate_text_label(label_text_dict, format):
+        res = []
+        for label, text_list in label_text_dict.items():
+            prompt = ''
+            for text in text_list:
+                prompt += apply_template(format, {"text": text, "label": label})
+            prompt += '******'
+            res.append(prompt)
+        return res
+
     def prepare_few_shot(self, text_list, label_list):
-        sampled_text, sampled_label = FlexDataset.sample_data(text_list=text_list,
+        sampled_text= FlexDataset.sample_data(text_list=text_list,
                                                               label_list=label_list,
                                                               label_set=self.label_list,
                                                               sample_n=self.few_shot_num_per_label,
                                                               random_state=self.random_state)
-        few_shot_data = FlexDataset.group_text_label_list(text_list=sampled_text,
-                                                          label_list=sampled_label,
+        few_shot_data = FlexDataset.concatenate_text_label(label_text_dict=sampled_text,
                                                           format=self.few_shot_format)
         return few_shot_data
 
