@@ -74,8 +74,6 @@ def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, 
     tokenizer.pad_token = tokenizer.eos_token
     column_names = raw_datasets[data_part].column_names
 
-    print(f"raw colum names: {raw_datasets[data_part].column_names}")
-
     def tokenize_function(examples):
         texts = tokenizer(examples[text_key])
 
@@ -175,42 +173,50 @@ class FlexDataset(Dataset):
 
         return {label: prompt for label, prompt in zip(self.label_list, prompt_list)}
 
-    def sample_data(self, dataset, sample_n=5, stratified=True):
+    @staticmethod
+    def sample_data(text_list, label_list, sample_n=5, stratified=True, random_state=None):
         from sklearn.model_selection import StratifiedShuffleSplit
         if stratified:
-            sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_n, random_state=self.random_state)
-            _, test_index = sss.split(dataset[self.text_key], dataset[self.label_key])
-            sampled_text = [dataset[self.text_key][i] for i in test_index]
-            sampled_label = [dataset[self.label_key][i] for i in test_index]
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_n, random_state=random_state)
+            _, test_index = sss.split(text_list, label_list)
+            sampled_text = [text_list[i] for i in test_index]
+            sampled_label = [label_list[i] for i in test_index]
         else:
             from sklearn.utils import resample
-            choices = resample(list(range(len(self))),
+            choices = resample(list(range(len(label_list))),
                                replace=False,
                                n_samples=sample_n,
-                               random_state=self.random_state)
-            sampled_text = [dataset[self.text_key][i] for i in choices]
-            sampled_label = [dataset[self.label_key][i] for i in choices]
-        sampled_data = {self.text_key: sampled_text, self.label_key: sampled_label}
-        return sampled_data
+                               random_state=random_state)
+            sampled_text = [text_list[i] for i in choices]
+            sampled_label = [label_list[i] for i in choices]
+        return sampled_text, sampled_label
 
-    def prepare_few_shot(self, shot_num=5):
-        # dataset = self.dataset
-        dataset = self.dataset[self.data_part]
-        sampled_data = self.sample_data(dataset=dataset, sample_n=shot_num)
-        # apply template
-        few_shot_data = []
-        for text, label in zip(sampled_data[self.text_key], sampled_data[self.label_key]):
-            few_shot_data.append(apply_template(self.few_shot_format,
-                                                {"text": text,
-                                                 "label": label}))
+    @staticmethod
+    def group_text_label_list(text_list, label_list, format=None):
+        group_data = []
+        if format:
+            for text, label in zip(text_list, label_list):
+                group_data.append(apply_template(format, {"text": text, "label": label}))
+        else:
+            group_data = [{"text": text, "label": label} for text, label in zip(text_list, label_list)]
+        return group_data
+
+    def prepare_few_shot(self, text_list, label_list, shot_num=5):
+        sampled_text, sampled_label = FlexDataset.sample_data(text_list=text_list,
+                                                       label_list=label_list,
+                                                       sample_n=shot_num,
+                                                       random_state=self.random_state)
+        few_shot_data = FlexDataset.group_text_label_list(text_list=sampled_text,
+                                                          label_list=sampled_label,
+                                                          format=self.few_shot_format)
         return few_shot_data
 
     def prepare_augment(self, few_shot_samples):
         data = []
         for i, sample in enumerate(few_shot_samples):
             query = self.augment_format + '\n' + sample
-            encodeds = self.apply_chat_template(query)
-            data.append(encodeds)
+            formatted_query = self.apply_chat_template(query)
+            data.append(formatted_query)
         return data
 
     def regex_filter(self, sample_list):
@@ -253,13 +259,14 @@ class FlexDataset(Dataset):
         :param clustered_labels: nested list of clustered labels
         :param response_list: list of responses from the clustering model
         """
-
         def parse_response(response):
-            match = re.search(r"The eligible samples: (\d+(?:, \d+)*)", response)
-            if match:
-                return [int(num) for num in match.group(1).split(',')]
+            pattern = r'The eligible samples:\s*((?:\b\d+\b[\s.,]*)+)'
+            matches = re.search(pattern, response, re.MULTILINE)
+            if matches:
+                digits = [int(i) for i in re.findall(r'\b\d+\b', matches.group())]
             else:
-                return []
+                digits = []
+            return list(set(digits))
 
         filtered_text_list = []
         filtered_label_list = []
