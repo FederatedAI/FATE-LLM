@@ -182,17 +182,14 @@ class FlexDataset(Dataset):
         from sklearn.utils import resample
         from collections import defaultdict
         data_dict = defaultdict(list)
-        print(f"label_set: {label_set}")
         for text, label in zip(text_list, label_list):
             # in case extra labels are present, ignore
             if label in label_set:
                 data_dict[label].append(text)
         sampled_text, sampled_label = [], []
         for label, samples in data_dict.items():
-            print(f"label: {label}, samples len: {len(samples)}")
             min_len = min(len(samples), sample_n)
             select_samples = resample(samples, replace=False, n_samples=min_len, random_state=random_state)
-            print(f"label: {label}, select samples: {len(samples)}")
             sampled_text.extend(select_samples)
             sampled_label.extend([label] * min_len)
 
@@ -217,14 +214,14 @@ class FlexDataset(Dataset):
         few_shot_data = FlexDataset.group_text_label_list(text_list=sampled_text,
                                                           label_list=sampled_label,
                                                           format=self.few_shot_format)
-        print(f"few_shot_len: {len(few_shot_data)}")
         return few_shot_data
 
     def prepare_augment(self, text_list, label_list):
         few_shot_samples = self.prepare_few_shot(text_list, label_list)
         data = []
+        instruction = apply_template(self.augment_format, {"sub_domain": self.sub_domain})
         for i, sample in enumerate(few_shot_samples):
-            query = self.augment_format + '\n' + sample
+            query =  instruction + '\n' + sample
             formatted_query = self.apply_chat_template(query)
             data.append(formatted_query)
         return data
