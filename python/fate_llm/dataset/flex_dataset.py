@@ -120,7 +120,7 @@ class FlexDataset(Dataset):
                  random_state: int = None,
                  max_prompt_len: int = 256,
                  select_num: int = None,
-                 few_shot_num: int = None
+                 few_shot_num_per_sample: int = None
                  ):
 
         super().__init__()
@@ -145,7 +145,7 @@ class FlexDataset(Dataset):
         self.sub_domain = None
         self.label_list = None
         self.text_with_label_format = None
-        self.few_shot_format = few_shot_num
+        self.few_shot_num_per_sample = few_shot_num_per_sample
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -164,8 +164,8 @@ class FlexDataset(Dataset):
         self.label_list = config.get("label_list", None)
         self.few_shot_format = config.get("few_shot_format", None)
         self.text_with_label_format = config.get("text_with_label_format", None)
-        if self.few_shot_format is None:
-            self.few_shot_format = config.get("few_shot_num", 5)
+        if self.few_shot_num_per_sample is None:
+            self.few_shot_num_per_sample = config.get("few_shot_num_per_sample", 2)
 
     def get_generate_prompt(self, tokenize=True, return_tensors="pt"):
         prompt_list = [apply_template(self.tokenize_format,
@@ -177,6 +177,7 @@ class FlexDataset(Dataset):
 
         return {label: prompt for label, prompt in zip(self.label_list, prompt_list)}
 
+    """
     @staticmethod
     def sample_data(text_list, label_list, sample_n=5, stratified=True, random_state=None):
         from sklearn.model_selection import StratifiedShuffleSplit
@@ -193,6 +194,24 @@ class FlexDataset(Dataset):
                                random_state=random_state)
             sampled_text = [text_list[i] for i in choices]
             sampled_label = [label_list[i] for i in choices]
+        return sampled_text, sampled_label"""
+
+    @staticmethod
+    def sample_data(text_list, label_list, label_set, sample_n=2,  random_state=None):
+        from sklearn.utils import resample
+        from collections import defaultdict
+        data_dict = defaultdict(list)
+        for text, label in zip(text_list, label_list):
+            # in case extra labels are present, ignore
+            if label in label_set:
+                data_dict[label].append(text)
+        sampled_text, sampled_label = [], []
+        for label, samples in data_dict.items():
+            min_len = min(len(samples), sample_n)
+            select_samples = resample(samples, replace=False, n_samples=min_len, random_state=random_state)
+            sampled_text.extend(select_samples)
+            sampled_label.extend([label] * min_len)
+
         return sampled_text, sampled_label
 
     @staticmethod
