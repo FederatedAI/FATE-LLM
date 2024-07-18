@@ -120,7 +120,8 @@ class FlexDataset(Dataset):
                  random_state: int = None,
                  max_prompt_len: int = 256,
                  select_num: int = None,
-                 few_shot_num_per_label: int = None
+                 few_shot_num_per_label: int = None,
+                 few_shot_prompt_num: int = None
                  ):
 
         super().__init__()
@@ -146,6 +147,7 @@ class FlexDataset(Dataset):
         self.label_list = None
         self.text_with_label_format = None
         self.few_shot_num_per_label = few_shot_num_per_label
+        self.few_shot_prompt_num = few_shot_prompt_num
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -166,6 +168,8 @@ class FlexDataset(Dataset):
         self.text_with_label_format = config.get("text_with_label_format", None)
         if self.few_shot_num_per_label is None:
             self.few_shot_num_per_label = config.get("few_shot_num_per_label", 2)
+        if self.few_shot_prompt_num is None:
+            self.few_shot_prompt_num = config.get("few_shot_prompt_num", 1)
 
     def get_generate_prompt(self, tokenize=True, return_tensors="pt"):
         prompt_list = [apply_template(self.tokenize_format,
@@ -178,47 +182,58 @@ class FlexDataset(Dataset):
         return {label: prompt for label, prompt in zip(self.label_list, prompt_list)}
 
     @staticmethod
-    def sample_data(text_list, label_list, label_set, sample_n=2, random_state=None):
+    def construct_prompt_list(samples_dict, num_shot_per_label, prompt_num, format_template, random_state=None):
         from sklearn.utils import resample
-        from collections import defaultdict
-        data_dict = defaultdict(list)
-        for text, label in zip(text_list, label_list):
-            # in case extra labels are present, ignore
-            if label in label_set:
-                data_dict[label].append(text)
-        sampled_text = defaultdict(list)
-        for label, samples in data_dict.items():
-            min_len = min(len(samples), sample_n)
-            select_samples = resample(samples, replace=False, n_samples=min_len, random_state=random_state)
-            sampled_text[label].extend(select_samples)
+        from collections import deque
 
-        return sampled_text
+        label_samples = {label: deque(resample(samples,
+                                               replace=False,
+                                               n_samples=len(samples))) for label, samples in samples_dict.items()}
+        def get_samples_for_label(label):
+            samples = []
+            while len(samples) < num_shot_per_label:
+                remaining_needed = num_shot_per_label - len(samples)
+                if len(label_samples[label]) < remaining_needed:
+                    batch_samples = list(label_samples[label])
+                    samples.extend(batch_samples)
+                    # reset to allow repetition
+                    label_samples[label] = deque(resample(samples_dict[label],
+                                                          replace=False,
+                                                          n_samples=len(samples_dict[label])))
+                else:
+                    batch_samples = [label_samples[label].popleft() for _ in range(remaining_needed)]
+                    samples.extend(batch_samples)
+            return samples
+
+        result = []
+        for _ in range(prompt_num):
+            prompt = ''
+            for label in samples_dict.keys():
+                samples = get_samples_for_label(label)
+                for text in samples:
+                    prompt += apply_template(format_template, {"text": text, "label": label})
+            result.append(prompt)
+        return result
 
     @staticmethod
     def group_text_label_list(text_list, label_list):
         group_data = [{"text": text, "label": label} for text, label in zip(text_list, label_list)]
         return group_data
 
-    @staticmethod
-    def concatenate_text_label(label_text_dict, format):
-        res = []
-        for label, text_list in label_text_dict.items():
-            prompt = ''
-            for text in text_list:
-                prompt += apply_template(format, {"text": text, "label": label})
-            prompt += '******'
-            res.append(prompt)
-        return res
-
     def prepare_few_shot(self, text_list, label_list):
-        sampled_text= FlexDataset.sample_data(text_list=text_list,
-                                                              label_list=label_list,
-                                                              label_set=self.label_list,
-                                                              sample_n=self.few_shot_num_per_label,
-                                                              random_state=self.random_state)
-        few_shot_data = FlexDataset.concatenate_text_label(label_text_dict=sampled_text,
-                                                          format=self.few_shot_format)
-        return few_shot_data
+        from collections import defaultdict
+        data_dict = defaultdict(list)
+        for text, label in zip(text_list, label_list):
+            # in case extra labels are present, ignore
+            if label in self.label_list:
+                data_dict[label].append(text)
+        few_shot_list = FlexDataset.construct_prompt_list(samples_dict=data_dict,
+                                                          num_shot_per_label=self.few_shot_num_per_label,
+                                                          prompt_num=self.few_shot_prompt_num,
+                                                          format_template=self.few_shot_format,
+                                                          random_state=self.random_state)
+
+        return few_shot_list
 
     def prepare_augment(self, text_list, label_list):
         few_shot_samples = self.prepare_few_shot(text_list, label_list)
