@@ -28,6 +28,11 @@ from fate.ml.nn.dataset.base import Dataset
 logger = logging.getLogger(__name__)
 
 
+"""
+Implementation of FDKT augmentation process, adopted from https://arxiv.org/abs/2405.14212
+"""
+
+
 def jinja_to_regex(template, placeholders):
     regex_template = re.escape(template)
     for placeholder in placeholders:
@@ -109,7 +114,6 @@ def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, 
 
 
 class FlexDataset(Dataset):
-
     def __init__(self,
                  tokenizer_path,
                  dataset_name: str,
