@@ -244,7 +244,7 @@ class FlexDataset(Dataset):
     def abstract_from_augmented(self, sample_list):
         regex_pattern = jinja_to_regex(self.augment_format, ["label", "text"])
         res = {'inputs': [], 'labels': []}
-        for i, sample in sample_list:
+        for sample in sample_list:
             data_list = sample.split('\n\n')
             for entry in data_list:
                 match = regex_pattern.match(entry)
