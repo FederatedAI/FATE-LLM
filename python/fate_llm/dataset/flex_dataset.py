@@ -121,7 +121,7 @@ class FlexDataset(Dataset):
                  max_prompt_len: int = 256,
                  select_num: int = None,
                  few_shot_num_per_label: int = None,
-                 few_shot_prompt_num: int = None
+                 aug_prompt_num: int = None
                  ):
 
         super().__init__()
@@ -147,7 +147,7 @@ class FlexDataset(Dataset):
         self.label_list = None
         self.text_with_label_format = None
         self.few_shot_num_per_label = few_shot_num_per_label
-        self.few_shot_prompt_num = few_shot_prompt_num
+        self.aug_prompt_num = aug_prompt_num
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -168,8 +168,6 @@ class FlexDataset(Dataset):
         self.text_with_label_format = config.get("text_with_label_format", None)
         if self.few_shot_num_per_label is None:
             self.few_shot_num_per_label = config.get("few_shot_num_per_label", 2)
-        if self.few_shot_prompt_num is None:
-            self.few_shot_prompt_num = config.get("few_shot_prompt_num", 1)
 
     def get_generate_prompt(self, tokenize=True, return_tensors="pt"):
         prompt_list = [apply_template(self.tokenize_format,
@@ -229,7 +227,7 @@ class FlexDataset(Dataset):
                 data_dict[label].append(text)
         few_shot_list = FlexDataset.construct_prompt_list(samples_dict=data_dict,
                                                           num_shot_per_label=self.few_shot_num_per_label,
-                                                          prompt_num=self.few_shot_prompt_num,
+                                                          prompt_num=self.aug_prompt_num,
                                                           format_template=self.few_shot_format,
                                                           random_state=self.random_state)
 
