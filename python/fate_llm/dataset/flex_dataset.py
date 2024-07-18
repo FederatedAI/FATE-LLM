@@ -120,8 +120,7 @@ class FlexDataset(Dataset):
                  random_state: int = None,
                  max_prompt_len: int = 256,
                  select_num: int = None,
-                 few_shot_num_per_label: int = None,
-                 aug_prompt_num: int = None
+                 few_shot_num_per_label: int = None
                  ):
 
         super().__init__()
@@ -147,7 +146,6 @@ class FlexDataset(Dataset):
         self.label_list = None
         self.text_with_label_format = None
         self.few_shot_num_per_label = few_shot_num_per_label
-        self.aug_prompt_num = aug_prompt_num
         self.config = config
         if isinstance(config, str):
             with open(config, 'r') as f:
@@ -218,7 +216,7 @@ class FlexDataset(Dataset):
         group_data = [{"text": text, "label": label} for text, label in zip(text_list, label_list)]
         return group_data
 
-    def prepare_few_shot(self, text_list, label_list):
+    def prepare_few_shot(self, text_list, label_list, aug_prompt_num):
         from collections import defaultdict
         data_dict = defaultdict(list)
         for text, label in zip(text_list, label_list):
@@ -227,21 +225,21 @@ class FlexDataset(Dataset):
                 data_dict[label].append(text)
         few_shot_list = FlexDataset.construct_prompt_list(samples_dict=data_dict,
                                                           num_shot_per_label=self.few_shot_num_per_label,
-                                                          prompt_num=self.aug_prompt_num,
+                                                          prompt_num=aug_prompt_num,
                                                           format_template=self.few_shot_format,
                                                           random_state=self.random_state)
 
         return few_shot_list
 
-    def prepare_augment(self, text_list, label_list):
-        few_shot_samples = self.prepare_few_shot(text_list, label_list)
-        data = []
+    def prepare_augment(self, text_list, label_list, aug_prompt_num):
+        few_shot_samples = self.prepare_few_shot(text_list, label_list, aug_prompt_num)
+        result = []
         instruction = apply_template(self.augment_format, {"sub_domain": self.sub_domain})
         for i, sample in enumerate(few_shot_samples):
             query =  instruction + '\n' + sample
             formatted_query = self.apply_chat_template(query)
-            data.append(formatted_query)
-        return data
+            result.append(formatted_query)
+        return result
 
     def abstract_from_augmented(self, sample_list):
         regex_pattern = jinja_to_regex(self.augment_format, ["label", "text"])
