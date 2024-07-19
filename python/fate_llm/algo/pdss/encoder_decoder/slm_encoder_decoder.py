@@ -22,7 +22,7 @@ from fate.ml.nn.dataset.base import Dataset
 from fate_llm.algo.inferdpt.utils import InferDPTKit
 from openai import OpenAI
 import logging
-from fate_llm.algo.inferdpt.inference.inference_base import Inference
+from fate_llm.inference.inference_base import Inference
 from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
 from fate_llm.dataset.hf_dataset import HuggingfaceDataset
 

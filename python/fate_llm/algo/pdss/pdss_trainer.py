@@ -32,7 +32,7 @@ from typing import Dict, Any
 from transformers import Seq2SeqTrainingArguments 
 from transformers.trainer_utils import EvalPrediction
 from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainer, Seq2SeqTrainingArguments
-from fate_llm.algo.inferdpt.inference.inference_base import Inference
+from fate_llm.inference.inference_base import Inference
 from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
 from fate_llm.algo.pdss.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
 

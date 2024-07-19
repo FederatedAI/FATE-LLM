@@ -15,7 +15,7 @@
 #
 
 from fate_llm.algo.inferdpt.init._init import InferInit
-from fate_llm.algo.inferdpt.inference.api import APICompletionInference
+from fate_llm.inference.api import APICompletionInference
 from fate_llm.algo.pdss.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
 
 

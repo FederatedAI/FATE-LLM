@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 from fate_llm.algo.inferdpt.init._init import InferInit
-from fate_llm.algo.inferdpt.inference.api import APICompletionInference
+from fate_llm.inference.api import APICompletionInference
 from fate_llm.algo.inferdpt import inferdpt
 from fate_llm.algo.inferdpt.utils import InferDPTKit
 from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
