@@ -33,13 +33,11 @@ Implementation of FDKT augmentation process, adopted from https://arxiv.org/abs/
 """
 
 
-def jinja_to_regex(template, placeholders):
-    regex_template = re.escape(template)
-    for placeholder in placeholders:
-        regex_template = regex_template.replace(re.escape(f'{{{{{placeholder}}}}}'), f'(?P<{placeholder}>.*?)')
-    pattern = re.compile(regex_template)
+def get_jinjax_placeholders(jinjax_text, placeholder_count=2):
+    pattern = r"<([^>]+)>"
+    matches = re.findall(pattern, jinjax_text)
 
-    return pattern
+    return matches[:placeholder_count]
 
 
 def regex_replace(string, pattern, repl, count: int = 0):
@@ -246,23 +244,26 @@ class FlexDataset(Dataset):
         return result
 
     def abstract_from_augmented(self, sample_list):
-        regex_pattern = jinja_to_regex(self.augment_format, ["label", "text"])
+        label_key, text_key = get_jinjax_placeholders(self.few_shot_format, 2)
         res = {'inputs': [], 'labels': []}
+        print(f"text_key: {text_key}, label_key: {label_key}")
         for sample in sample_list:
-            data_list = sample.split('\n\n')
+            data_list = sample.split('\n\n-')
+            print(f"data list: {data_list}")
             for entry in data_list:
-                match = regex_pattern.match(entry)
-                if match:
-                    if isinstance(self.label_list[0], int):
-                        label = int(match.groupdict().get('label'))
-                    elif isinstance(self.label_list[0], float):
-                        label = float(match.groupdict().get('label'))
-                    else:
-                        label = match.groupdict().get('label')
-                    text = match.groupdict().get('text').strip('</s>')
-                    if label and text:
-                        res['inputs'].append(text)
-                        res['labels'].append(label)
+                temp = entry.split(f"<{text_key}>:")
+                print(f"temp: {temp}")
+                if len(temp) == 2 and f"<{label_key}>" in temp[0]:
+                    label_str, input_str = temp
+                    label = label_str.split(f"<{label_key}>:")[1].strip()
+                    if label[0].isdigit():
+                        label = int(label[0])
+                    elif re.match(r'^\d+\.\d*?$', label):
+                        label = float(label[0])
+                    text = input_str.replace('</s>', '').rstrip('*')
+                    text = text.strip()
+                    res['inputs'].append(text)
+                    res['labels'].append(label)
         return res
 
     def prepare_query_to_filter_clustered(self, clustered_sentences_list, clustered_labels_list):
