@@ -11,6 +11,7 @@ def slm_text_generate(
     use_cpu,
     generation_config
 ):
+    model.eval()
     generated_ret = dict(
         inputs=list(),
         labels=list(),
@@ -44,6 +45,7 @@ def slm_text_generate(
 
 
 def general_text_generate(
+    inference_inst,
     model,
     tokenizer,
     generation_config: Dict[Any, Any],
@@ -52,28 +54,32 @@ def general_text_generate(
     use_cpu: bool,
     prompt_max_length
 ):
-    generate_texts = []
-    batch_num = (len(prompts) + batch_size - 1) // batch_size
-    for batch_idx in range(batch_num):
-        batch_data = prompts[batch_idx * batch_size: (batch_idx + 1) * batch_size]
+    if inference_inst is not None:
+        generate_texts = inference_inst.inference(prompts, generation_config)
+    else:
+        model.eval()
+        generate_texts = []
+        batch_num = (len(prompts) + batch_size - 1) // batch_size
+        for batch_idx in range(batch_num):
+            batch_data = prompts[batch_idx * batch_size: (batch_idx + 1) * batch_size]
 
-        inputs = tokenizer(batch_data, return_tensors="pt", padding="longest", truncation=True,
-                           max_length=prompt_max_length)
-        input_ids = inputs["input_ids"]
-        attention_mask = inputs["attention_mask"]
+            inputs = tokenizer(batch_data, return_tensors="pt", padding="longest", truncation=True,
+                               max_length=prompt_max_length)
+            input_ids = inputs["input_ids"]
+            attention_mask = inputs["attention_mask"]
 
-        if not use_cpu:
-            input_ids = input_ids.to(model.device)
-            attention_mask = attention_mask.to(model.device)
+            if not use_cpu:
+                input_ids = input_ids.to(model.device)
+                attention_mask = attention_mask.to(model.device)
 
-        output = model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            **generation_config
-        )
+            output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                **generation_config
+            )
 
-        batch_responses = tokenizer.batch_decode(output[:, input_ids.shape[1]:], skip_special_tokens=True)
+            batch_responses = tokenizer.batch_decode(output[:, input_ids.shape[1]:], skip_special_tokens=True)
 
-        generate_texts.extend(batch_responses)
+            generate_texts.extend(batch_responses)
 
     return generate_texts

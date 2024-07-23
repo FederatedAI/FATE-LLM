@@ -13,7 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-import os
+import os.path
+
 import torch
 import logging
 from dataclasses import dataclass, field
@@ -23,6 +24,7 @@ from fate.arch import Context
 from transformers import PreTrainedTokenizer
 from .utils.text_generate import slm_text_generate, general_text_generate
 from .cluster.cluster import SentenceCluster
+from fate_llm.inference.inference_base import Inference
 
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,8 @@ class FDKTTrainingArguments(Seq2SeqTrainingArguments):
     target_delta: float = field(default=1e-5)
     freeze_embedding: bool = field(default=False)
     device_id: int = field(default=0)
+    slm_generation_config: dict = field(default=None)
+    slm_generation_batch_size: dict = field(default=None)
 
     """
     slm generation config
@@ -116,12 +120,18 @@ class FDKTSLM(object):
             self.tokenizer,
             prompt_ids_dict=prefix_prompt_ids_dict,
             seq_num_for_single_category=self.training_args.seq_num_for_single_category,
-            batch_size=self.training_args.per_device_train_batch_size,
+            batch_size=self.training_args.slm_generation_batch_size,
             use_cpu=self.training_args.use_cpu,
-            generation_config=self.training_args.generation_config
+            generation_config=self.training_args.slm_generation_config
         )
 
+        if not self.training_args.use_cpu:
+            self.model.cpu()
+            torch.cuda.empty_cache()
+
         self.sync_synthetic_dataset(generated_text)
+
+        return self.sync_aug_data()
 
     def dp_train(self):
         from ..dp import DPTrainer, DPTrainingArguments, get_model_class
@@ -176,21 +186,25 @@ class FDKTLLM(object):
     def __init__(
         self,
         ctx: Context,
-        model: torch.nn.Module,
         embedding_model: torch.nn.Module,
         training_args: FDKTTrainingArguments,
         dataset,
+        model: Optional[torch.nn.Module] = None,
         tokenizer: Optional[PreTrainedTokenizer] = None,
+        inference_inst: Optional[Inference] = None,
     ):
         super(FDKTLLM, self).__init__()
         self.ctx = ctx
-        self.model = model
+        self.inference_inst = inference_inst
         self.embedding_model = embedding_model
         self.dataset = dataset
         self.training_args = training_args
+        self.model = model
         self.tokenizer = tokenizer
 
-        if not self.training_args.use_cpu:
+        if self.inference_inst is None and (self.model is None or self.tokenizer is None):
+            raise ValueError("Inference_inst and Model are both empty, should provided one")
+        if self.model is not None and self.training_args.device_id is not None and not self.training_args.use_cpu:
             self.model.cuda(self.training_args.device_id)
 
     def sync_synthetic_data(self):
@@ -215,6 +229,7 @@ class FDKTLLM(object):
 
     def _aug(self, aug_prompts):
         aug_responses = general_text_generate(
+            inference_inst=self.inference_inst,
             model=self.model,
             tokenizer=self.tokenizer,
             generation_config=self.training_args.aug_generation_config,
@@ -232,6 +247,7 @@ class FDKTLLM(object):
         clustered_sentences, clustered_labels = self.cluster_data(slm_data)
         filter_prompts = self.dataset.prepare_query_to_filter_clustered(clustered_sentences, clustered_labels)
         filter_responses = general_text_generate(
+            inference_inst=self.inference_inst,
             model=self.model,
             tokenizer=self.tokenizer,
             generation_config=self.training_args.filter_generation_config,

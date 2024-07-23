@@ -12,7 +12,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-import pandas as pd
+import logging
+import torch
 from fate.components.components.nn.nn_runner import (
     load_model_dict_from_path,
     dir_warning,
@@ -20,22 +21,23 @@ from fate.components.components.nn.nn_runner import (
     run_dataset_func,
 )
 from typing import Dict
-from fate.arch.dataframe import PandasReader
 from fate.components.components.nn.loader import Loader
 from typing import Union, Optional, Literal
 from transformers.trainer_utils import get_last_checkpoint
-import logging
 from fate.arch.dataframe import DataFrame
 from fate.components.components.nn.runner.homo_default_runner import DefaultRunner
 from fate_llm.algo.fdkt import FDKTTrainingArguments, FDKTSLM, FDKTLLM
 
 logger = logging.getLogger(__name__)
+AUG_DATA_SAVED_PATH_SUFFIX = "aug_data.pkl"
+DP_MODEL_SAVED_PATH_SUFFIX = "dp_model"
 
 
 class FDKTRunner(DefaultRunner):
     def __init__(
         self,
         algo: str = "fdkt",
+        inference_inst_conf: Optional[Dict] = None,
         model_conf: Optional[Dict] = None,
         embedding_model_conf: Optional[Dict] = None,
         optimizer_conf: Optional[Dict] = None,
@@ -48,6 +50,7 @@ class FDKTRunner(DefaultRunner):
     ) -> None:
         super(FDKTRunner, self).__init__()
         self.algo = algo
+        self.inference_inst_conf = inference_inst_conf
         self.model_conf = model_conf
         self.embedding_model_conf = embedding_model_conf
         self.optimizer_conf = optimizer_conf
@@ -66,17 +69,16 @@ class FDKTRunner(DefaultRunner):
         if self.task_type not in ["causal_lm"]:
             raise ValueError("task_type should be causal_lm")
 
-        self.aug_data = None
-
     def common_setup(self, saved_model=None, output_dir=None):
         ctx = self.get_context()
 
         if output_dir is None:
             output_dir = "./"
 
-        model = loader_load_from_conf(self.model_conf)
-        if model is None:
-            raise ValueError(f"model is None, cannot load model from conf {self.model_conf}")
+        if self.model_conf is not None:
+            model = loader_load_from_conf(self.model_conf)
+        else:
+            model = None
 
         resume_path = None
         if saved_model is not None:
@@ -88,7 +90,10 @@ class FDKTRunner(DefaultRunner):
                 logger.info(f"checkpoint detected, resume_path set to {resume_path}")
 
         # load tokenizer if import conf provided
-        tokenizer = loader_load_from_conf(self.tokenizer_conf)
+        if self.tokenizer_conf is not None:
+            tokenizer = loader_load_from_conf(self.tokenizer_conf)
+        else:
+            tokenizer = None
 
         # args
         dir_warning(self.training_args_conf)
@@ -107,7 +112,13 @@ class FDKTRunner(DefaultRunner):
         ctx, model, tokenizer, training_args, dataset = self.common_setup(
             output_dir=output_dir, saved_model=saved_model)
 
-        model = model.load()
+        if model is not None:
+            model = model.load()
+
+        inference_inst = None
+        if self.inference_inst_conf is not None:
+            inference_inst = loader_load_from_conf(self.inference_inst_conf)
+
         embedding_model = loader_load_from_conf(self.embedding_model_conf)
         if embedding_model is None:
             raise ValueError(f"model is None, cannot load model from conf {self.model_conf}")
@@ -115,6 +126,7 @@ class FDKTRunner(DefaultRunner):
 
         trainer = FDKTLLM(
             ctx=ctx,
+            inference_inst=inference_inst,
             model=model,
             embedding_model=embedding_model,
             training_args=training_args,
@@ -163,10 +175,15 @@ class FDKTRunner(DefaultRunner):
 
         if self.is_client():
             trainer = self.slm_setup(train_set=train_data, validate_set=validate_data, output_dir=output_dir, saved_model=saved_model_path)
-            self.aug_data = trainer.aug_data()
+            aug_data = trainer.aug_data()
+
+            data_saved_path = output_dir + '/' + AUG_DATA_SAVED_PATH_SUFFIX
+            logger.info('result save to path {}'.format(data_saved_path))
+            torch.save(aug_data, data_saved_path)
 
             if self.save_dp_model:
-                trainer.save_model(output_dir)
+                model_save_dir = output_dir + "/" + DP_MODEL_SAVED_PATH_SUFFIX
+                trainer.save_model(model_save_dir)
 
         else:
             trainer = self.llm_setup(
@@ -175,21 +192,4 @@ class FDKTRunner(DefaultRunner):
             trainer.aug_data()
 
     def predict(self, *args, **kwargs):
-        if self.is_client():
-            ctx = self.get_context()
-            df = pd.DataFrame()
-            texts = self.aug_data["inputs"]
-            labels = self.aug_data["labels"]
-
-            sample_id_name = "sample_id"
-            match_id_name = "match_id"
-            df[sample_id_name] = list(map(str, range(len(texts))))
-            df[match_id_name] = list(map(str, range(len(texts))))
-            import json
-            texts = [json.dumps(text) for text in texts]
-            labels = [json.dumps(label) for label in labels]
-            df["inputs"] = texts
-            df["labels"] = labels
-
-            reader = PandasReader(sample_id_name=sample_id_name, match_id_name=match_id_name, dtype="object")
-            return reader.to_frame(ctx, df)
+        pass
