@@ -15,6 +15,7 @@
 #
 
 import logging
+import pickle
 import re
 from datasets import load_dataset
 from fastchat.model import get_conversation_template
@@ -131,8 +132,8 @@ class FlexDataset(Dataset):
         self.tokenizer_path = tokenizer_path
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_path, trust_remote_code=True)
         self.dataset_name = dataset_name
-        if self.dataset_name:
-            config = DATA_CONFIG_TEMPLATE.get("datasets", {})
+        if self.dataset_name and config is None:
+            config = DATA_CONFIG_TEMPLATE.get(self.dataset_name, "")
         self.load_from = load_from
         self.data_part = data_part
         self.random_state = random_state
@@ -246,27 +247,31 @@ class FlexDataset(Dataset):
             result.append(formatted_query)
         return result
 
-    def abstract_from_augmented(self, sample_list):
+    def abstract_from_augmented(self, augmented_responses_path):
+        with open(augmented_responses_path, "rb") as fin:
+            sample_list = pickle.loads(fin.read())
         label_key, text_key = get_jinjax_placeholders(self.few_shot_format, 2)
         res = {'inputs': [], 'labels': []}
-        print(f"text_key: {text_key}, label_key: {label_key}")
         for sample in sample_list:
             data_list = sample.split('\n\n-')
-            print(f"data list: {data_list}")
             for entry in data_list:
                 temp = entry.split(f"<{text_key}>:")
-                print(f"temp: {temp}")
+                # print(f"temp: {temp}")
                 if len(temp) == 2 and f"<{label_key}>" in temp[0]:
                     label_str, input_str = temp
                     label = label_str.split(f"<{label_key}>:")[1].strip()
-                    if label[0].isdigit():
+                    if isinstance(self.label_list[0], int) and label[0].isdigit():
                         label = int(label[0])
-                    elif re.match(r'^\d+\.\d*?$', label):
+                    elif isinstance(self.label_list[0], float) and re.match(r'^\d+\.\d*?$', label):
                         label = float(label[0])
+                    # abstracted label value does not match the original label type
+                    elif isinstance(self.label_list[0], int) or isinstance(self.label_list[0], float):
+                        continue
                     text = input_str.replace('</s>', '').rstrip('*')
                     text = text.strip()
                     res['inputs'].append(text)
                     res['labels'].append(label)
+        # print(f"res: {res}")
         return res
 
     def prepare_query_to_filter_clustered(self, clustered_sentences_list, clustered_labels_list):
