@@ -247,9 +247,7 @@ class FlexDataset(Dataset):
             result.append(formatted_query)
         return result
 
-    def abstract_from_augmented(self, augmented_responses_path):
-        with open(augmented_responses_path, "rb") as fin:
-            sample_list = pickle.loads(fin.read())
+    def abstract_from_augmented(self, sample_list):
         label_key, text_key = get_jinjax_placeholders(self.few_shot_format, 2)
         res = {'inputs': [], 'labels': []}
         for sample in sample_list:
