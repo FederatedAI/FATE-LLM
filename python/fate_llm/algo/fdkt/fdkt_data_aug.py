@@ -23,6 +23,7 @@ from ...trainer.seq2seq_trainer import Seq2SeqTrainingArguments
 from typing import Optional, Callable
 from fate.arch import Context
 from transformers import PreTrainedTokenizer
+from .utils.invalid_data_filter import filter_invalid_data
 from .utils.text_generate import slm_text_generate, general_text_generate
 from .cluster.cluster import SentenceCluster
 from fate_llm.inference.inference_base import Inference
@@ -41,7 +42,7 @@ class FDKTTrainingArguments(Seq2SeqTrainingArguments):
     dp_training: bool = field(default=True)
     target_epsilon: float = field(default=3)
     target_delta: float = field(default=1e-5)
-    freeze_embedding: bool = field(default=False)
+    freeze_embedding: bool = field(default=True)
     device_id: int = field(default=0)
     slm_generation_config: dict = field(default=None)
     slm_generation_batch_size: dict = field(default=None)
@@ -125,7 +126,7 @@ class FDKTSLM(object):
         prefix_prompt_dict = self.train_set.get_generate_prompt(
             tokenize=True if inference_inst is None else False)
 
-        generated_text = slm_text_generate(
+        generated_texts = slm_text_generate(
             inference_inst,
             self.model,
             self.tokenizer,
@@ -142,7 +143,8 @@ class FDKTSLM(object):
             self.model.cpu()
             torch.cuda.empty_cache()
 
-        self.sync_synthetic_dataset(generated_text)
+        generated_texts = filter_invalid_data(generated_texts)
+        self.sync_synthetic_dataset(generated_texts)
 
         return self.sync_aug_data()
 
@@ -265,6 +267,7 @@ class FDKTLLM(object):
 
         logging.info("aug_data")
         aug_data = self._aug(aug_prompts)
+        aug_data = filter_invalid_data(aug_data)
         self.sync_aug_data(aug_data)
 
     def _aug(self, aug_prompts):
