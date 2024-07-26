@@ -115,7 +115,7 @@ def tokenize_flex_dataset(raw_datasets, tokenizer, sub_domain, tokenize_format, 
 
 class FlexDataset(Dataset):
     def __init__(self,
-                 tokenizer_path,
+                 tokenizer_name_or_path,
                  dataset_name: str,
                  load_from: Literal['json'] = 'json',
                  data_part: str = None,
@@ -129,8 +129,8 @@ class FlexDataset(Dataset):
 
         super().__init__()
         self.tokenizer = None
-        self.tokenizer_path = tokenizer_path
-        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_path, trust_remote_code=True)
+        self.tokenizer_name_or_path = tokenizer_name_or_path
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name_or_path, trust_remote_code=True)
         self.dataset_name = dataset_name
         if self.dataset_name and config is None:
             config = DATA_CONFIG_TEMPLATE.get(self.dataset_name, "")
@@ -330,7 +330,8 @@ class FlexDataset(Dataset):
                 sub_domain=self.sub_domain,
                 tokenize_format=self.tokenize_format,
                 text_key=self.text_key,
-                label_key=self.label_key
+                label_key=self.label_key,
+                max_prompt_len=self.max_prompt_len
             )
             self.ds = tokenized_ds[self.data_part]
 
@@ -340,14 +341,14 @@ class FlexDataset(Dataset):
     def apply_chat_template(self, query):
         tokenizer = self.tokenizer
 
-        if "llama-3" in self.tokenizer_path.lower():
+        if "llama-3" in self.tokenizer_name_or_path.lower():
             msg = [
                 {"role": "system", "content": "You are a helpful assistant. "},
                 {"role": "user", "content": query}
             ]
             prompt = tokenizer.apply_chat_template(msg, add_generation_prompt=True, tokenize=False)
         else:
-            conv = get_conversation_template(self.tokenizer_path)
+            conv = get_conversation_template(self.tokenizer_name_or_path)
             conv.append_message(conv.roles[0], query)
             conv.append_message(conv.roles[1], None)
             prompt = conv.get_prompt()
