@@ -1,10 +1,33 @@
-from fate_llm.inference.api import APICompletionInference
-
-
-def init(api_url: str, model_name: str, api_key: str = 'EMPTY', api_timeout=3600):
+#
+#  Copyright 2019 The FATE Authors. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+def api_init(api_url: str, model_name: str, api_key: str = 'EMPTY', api_timeout=3600):
+    from fate_llm.inference.api import APICompletionInference
     return APICompletionInference(
         api_url=api_url,
         model_name=model_name,
         api_key=api_key,
         api_timeout=api_timeout
+    )
+
+
+def vllm_init(model_path: str, num_gpu=1, dtype='float16', gpu_memory_utilization=0.9):
+    from fate_llm.inference.vllm import VLLMInference
+    return VLLMInference(
+        model_path=model_path,
+        num_gpu=num_gpu,
+        dtype=dtype,
+        gpu_memory_utilization=gpu_memory_utilization
     )

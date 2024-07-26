@@ -1,4 +1,5 @@
 #
+#  Copyright (c) Meta Platforms, Inc. and affiliates.
 #  Copyright 2019 The FATE Authors. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +22,8 @@ from opacus.optimizers.optimizer import (
 )
 
 
+# modified from https://github.com/pytorch/opacus/blob/main/opacus/optimizers/optimizer.py#L424
+# avoid dtype error when summed_grad's dtype isn't torch.float32
 def add_noise(self):
     """
     Adds noise to clipped gradients. Stores clipped and noised result in ``p.grad``

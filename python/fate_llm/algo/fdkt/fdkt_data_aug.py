@@ -14,6 +14,7 @@
 #  limitations under the License.
 #
 import os.path
+import shutil
 
 import torch
 import logging
@@ -44,6 +45,8 @@ class FDKTTrainingArguments(Seq2SeqTrainingArguments):
     device_id: int = field(default=0)
     slm_generation_config: dict = field(default=None)
     slm_generation_batch_size: dict = field(default=None)
+    inference_method: str = field(default="native")
+    inference_inst_init_conf: dict = field(default=None)
 
     """
     slm generation config
@@ -111,19 +114,29 @@ class FDKTSLM(object):
             self.model.cuda(self.training_args.device_id)
 
     def aug_data(self):
+        logging.info("Start aug data process")
+        logging.debug(f"dp_training={self.training_args.dp_training}")
         if self.training_args.dp_training:
+            logging.info("Start dp training")
             self.dp_train()
+            logging.info("End dp training")
 
-        prefix_prompt_ids_dict = self.train_set.get_generate_prompt(tokenize=True)
+        inference_inst = self._create_inference_inst()
+        prefix_prompt_dict = self.train_set.get_generate_prompt(
+            tokenize=True if inference_inst is None else False)
+
         generated_text = slm_text_generate(
+            inference_inst,
             self.model,
             self.tokenizer,
-            prompt_ids_dict=prefix_prompt_ids_dict,
+            prompt_dict=prefix_prompt_dict,
             seq_num_for_single_category=self.training_args.seq_num_for_single_category,
             batch_size=self.training_args.slm_generation_batch_size,
             use_cpu=self.training_args.use_cpu,
             generation_config=self.training_args.slm_generation_config
         )
+
+        self._destroy_inference_inst()
 
         if not self.training_args.use_cpu:
             self.model.cpu()
@@ -163,6 +176,29 @@ class FDKTSLM(object):
         )
 
         dp_trainer.train()
+
+    def _create_inference_inst(self):
+        if self.training_args.inference_method == "native":
+            return None
+        elif self.training_args.inference_method == "vllm":
+            from .inference_inst import vllm_init
+
+            self.model.cpu()
+            model_temp_path = self.training_args.output_dir + "./model_for_inference"
+            self.tokenizer.save_pretrained(model_temp_path)
+            self.model.save_pretrained(model_temp_path)
+
+            return vllm_init(model_temp_path) if self.training_args.inference_inst_init_conf is None \
+                else vllm_init(model_temp_path, **self.training_args.inference_inst_init_conf)
+
+        else:
+            raise ValueError(f"not supported inference_method={self.training_args.inference_method}")
+
+    def _destroy_inference_inst(self):
+        if self.training_args.inference_method == "vllm":
+            shutil.rmtree(self.training_args.output_dir + "./model_for_inference")
+        elif not self.training_args.use_cpu:
+            self.model.cpu()
 
     def sync_synthetic_dataset(self, data):
         self.ctx.arbiter.put(SLM_SYNTHETIC_DATA, data)
@@ -214,16 +250,20 @@ class FDKTLLM(object):
         self.ctx.guest.put(LLM_AUG_DATA, aug_data)
 
     def aug_data(self):
+        logging.info("sync slm synthetic_data")
         slm_data = self.sync_synthetic_data()
 
+        logging.info("filter slm synthetic data")
         filter_data = self.filter_data(slm_data)
 
+        logging.info("prepare prompts for aug")
         aug_prompts = self.dataset.prepare_augment(
             filter_data["inputs"],
             filter_data["labels"],
             aug_prompt_num=self.training_args.aug_prompt_num
         )
 
+        logging.info("aug_data")
         aug_data = self._aug(aug_prompts)
         self.sync_aug_data(aug_data)
 

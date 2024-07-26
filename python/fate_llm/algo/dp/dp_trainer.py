@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class DPTrainingArguments(Seq2SeqTrainingArguments):
     target_epsilon: float = field(default=3)
     target_delta: float = field(default=1e-5)
-    freeze_embedding: bool = field(default=False)
+    freeze_embedding: bool = field(default=True)
     device_id: int = field(default=0)
 
 
@@ -95,7 +95,9 @@ class DPTrainer(object):
         add_optimizer_compatibility(self.dp_optimizer)
 
     def train(self):
+        logger.info(f"begin dp training, total epochs={self.training_args.num_train_epochs}")
         for epoch in range(int(self.training_args.num_train_epochs)):
+            logger.info(f"dp training on epoch={epoch}")
             self._train_an_epoch()
 
     def _train_an_epoch(self):
