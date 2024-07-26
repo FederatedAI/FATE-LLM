@@ -150,26 +150,37 @@ class OffsiteTuningBaseModel(t.nn.Module):
                 v in v.state_dict().items()}
         return weight_dict
 
-    def get_submodel_weights(self) -> dict:
-        submodel_weights = {
-            "emulator": {
-                k: self._get_numpy_arr(v) for k,
-                v in self.get_emulator().state_dict().items()},
-            "adapter_top": {
-                k: self._get_numpy_arr(v) for k,
-                v in self.get_adapter_top().state_dict().items()},
-            "adapter_bottom": {
-                k: self._get_numpy_arr(v) for k,
-                v in self.get_adapter_bottom().state_dict().items()}}
+    def get_submodel_weights(self, with_emulator=True) -> dict:
+        if with_emulator:
+            submodel_weights = {
+                "emulator": {
+                    k: self._get_numpy_arr(v) for k,
+                    v in self.get_emulator().state_dict().items()},
+                "adapter_top": {
+                    k: self._get_numpy_arr(v) for k,
+                    v in self.get_adapter_top().state_dict().items()},
+                "adapter_bottom": {
+                    k: self._get_numpy_arr(v) for k,
+                    v in self.get_adapter_bottom().state_dict().items()}}
+        else:
+            submodel_weights = {
+                "adapter_top": {
+                    k: self._get_numpy_arr(v) for k,
+                    v in self.get_adapter_top().state_dict().items()},
+                "adapter_bottom": {
+                    k: self._get_numpy_arr(v) for k,
+                    v in self.get_adapter_bottom().state_dict().items()}}
         addition_weights = self.get_additional_param_state_dict()
         submodel_weights.update(addition_weights)
         return submodel_weights
 
-    def load_submodel_weights(self, submodel_weights: dict):
+    def load_submodel_weights(self, submodel_weights: dict, with_emulator=True):
 
-        emulator_weights = {
-            k: t.tensor(v) for k,
-            v in submodel_weights['emulator'].items()}
+        if with_emulator:
+            emulator_weights = {
+                k: t.tensor(v) for k,
+                v in submodel_weights['emulator'].items()}
+            emulator.load_state_dict(emulator_weights)
         adapter_top_weights = {
             k: t.tensor(v) for k,
             v in submodel_weights['adapter_top'].items()}
@@ -181,7 +192,6 @@ class OffsiteTuningBaseModel(t.nn.Module):
         adapter_top = self.get_adapter_top()
         adapter_bottom = self.get_adapter_bottom()
 
-        emulator.load_state_dict(emulator_weights)
         adapter_top.load_state_dict(adapter_top_weights)
         adapter_bottom.load_state_dict(adapter_bottom_weights)
         self.load_additional_param_state_dict(submodel_weights)
