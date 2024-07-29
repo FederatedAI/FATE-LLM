@@ -68,7 +68,7 @@ class InferDPTRunner(NNRunner):
         self.perturbed_response_key = perturbed_response_key
         self.result_key = result_key
 
-    def _get_inferdpt_inst(self):
+    def _get_inst(self):
         loader = Loader.from_dict(self.inferdpt_init_conf)
         init_inst = loader.load_item()(self.get_context())
         assert isinstance(init_inst, InferInit), 'Need a InferDPTInit class for initialization, but got {}'.format(type(init_inst))
