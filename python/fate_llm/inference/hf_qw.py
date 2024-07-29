@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-from fate_llm.algo.inferdpt.inference.inference_base import Inference
+from fate_llm.inference.inference_base import Inference
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import List
 import tqdm
