@@ -6,4 +6,9 @@ lm_eval==0.4.2
 rouge-score==0.1.2
 datasets
 editdistance
+torch==2.3.1
+opacus==1.4.1
+fastchat
+Jinja2
+sentence-transformers
 
