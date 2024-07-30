@@ -78,6 +78,8 @@ def general_text_generate(
     prompt_max_length
 ):
     if inference_inst is not None:
+        if prompt_max_length is not None:
+            prompts = [prompt[:prompt_max_length] for prompt in prompts]
         generate_texts = inference_inst.inference(prompts, generation_config)
     else:
         model.eval()
