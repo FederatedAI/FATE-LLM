@@ -17,10 +17,9 @@
 
 from setuptools import find_packages, setup
 
-import fate_llm
-
 # Define the packages and modules
-packages = find_packages(include=["fate_llm", "fate_llm.*"])
+packages = find_packages(".")
+package_data = {"": ["*"]}
 
 # Define dependencies
 install_requires = [
@@ -32,8 +31,12 @@ install_requires = [
     "rouge-score==0.1.2",
     "datasets",
     "editdistance",
-    "torch==2.3.1",  # Added dependency
-    "transformers==4.42.4"  # Added dependency
+    "torch==2.3.1",
+    "transformers==4.37.2",
+    "opacus==1.4.1",
+    "fastchat",
+    "Jinja2",
+    "sentence-transformers"
 ]
 
 # Define the entry points for command-line tools
@@ -43,10 +46,15 @@ entry_points = {
     ]
 }
 
+extras_require = {
+    "fate": ["pyfate==2.2.0"],
+    "fate_flow": ["fate_flow==2.2.0"]
+}
+
 # Configure and call the setup function
 setup_kwargs = {
     "name": "fate_llm",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "Federated Learning for Large Language Models",
     "long_description": "Federated Learning for Large Language Models (FATE-LLM) provides a framework to train and evaluate large language models in a federated manner.",
     "long_description_content_type": "text/markdown",
@@ -56,6 +64,7 @@ setup_kwargs = {
     "packages": packages,
     "install_requires": install_requires,
     "entry_points": entry_points,
+    "extras_require": extras_require,
     "python_requires": ">=3.8",
     "include_package_data": True
 }
