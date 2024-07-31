@@ -14,7 +14,7 @@ FATE-LLM is a framework to support federated learning for large language models(
 </div>
 
 ### Standalone deployment
-* To deploy FATE-LLM v2.2.0 or higher version, three ways are provided, please refer deploy tutorials for more details:
+* To deploy FATE-LLM v2.2.0 or higher version, three ways are provided, please refer [deploy tutorial](./doc/standalone_deploy.md) for more details:
   * deploy with FATE only from pypi then using Launcher to run tasks
   * deploy with FATE、FATE-Flow、FATE-Client from pypi, user can run tasks with Pipeline  
 * To deploy lower versions: please refer to [FATE-Standalone deployment](https://github.com/FederatedAI/FATE#standalone-deployment).   
