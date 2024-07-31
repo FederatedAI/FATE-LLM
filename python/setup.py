@@ -29,7 +29,7 @@ install_requires = [
     "sentencepiece==0.2.0",
     "lm_eval==0.4.2",
     "rouge-score==0.1.2",
-    "datasets",
+    "datasets==2.18.0",
     "editdistance",
     "torch==2.3.1",
     "transformers==4.37.2",
