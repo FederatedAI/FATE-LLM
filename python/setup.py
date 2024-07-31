@@ -49,7 +49,8 @@ entry_points = {
 
 extras_require = {
     "fate": ["pyfate==2.2.0"],
-    "fate_flow": ["fate_flow==2.2.0"]
+    "fate_flow": ["fate_flow==2.2.0"],
+    "fate_client": ["fate_client==2.2.0"]
 }
 
 # Configure and call the setup function
