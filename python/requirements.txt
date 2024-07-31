@@ -12,4 +12,4 @@ opacus==1.4.1
 fastchat
 Jinja2
 sentence-transformers
-
+openai

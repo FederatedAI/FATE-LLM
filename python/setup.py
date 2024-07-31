@@ -36,7 +36,8 @@ install_requires = [
     "opacus==1.4.1",
     "fastchat",
     "Jinja2",
-    "sentence-transformers"
+    "sentence-transformers",
+    "openai"
 ]
 
 # Define the entry points for command-line tools
