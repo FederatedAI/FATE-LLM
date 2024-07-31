@@ -5,6 +5,7 @@
   * Support an encoder-decoder mechanism for privacy-preserving Cot generation.
   * Add prefix trainers for step-by-step distillation and text encoder-decoder training.
 * Integrate the FDKT algorithm, a framework that enables domain-specific knowledge transfer from LLMs to SLMs while preserving SLM data privacy
+* Deployment Optimization: support installation of FATE-LLM by PyPi
 
 
 ## Release 2.1.0
