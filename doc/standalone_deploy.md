@@ -41,14 +41,7 @@ After installing successfully, please refer to [tutorials](../README.md#quick-st
 In this way, user can run tasks with Pipeline or Launcher. 
 
 ### 3.1 Installing Python Environment
-- Prepare and install [conda](https://docs.conda.io/projects/miniconda/en/latest/) environment.
-- Create a virtual environment:
-
-```shell
-# FATE-LLM requires Python >= 3.10
-conda create -n fate_env python=3.10
-conda activate fate_env
-```
+Please refer to section-2.1
 
 ### 3.2 Installing FATE-LLM with FATE, FATE-Flow, FATE-Client
 
@@ -59,7 +52,8 @@ pip install fate_client[fate,fate_flow,fate_client]==2.2.0
 ### 3.3 Service Initialization
 
 ```shell
-fate_flow init --ip 127.0.0.1 --port 9380 --home $HOME_DIR
+mkdir fate_workspace
+fate_flow init --ip 127.0.0.1 --port 9380 --home $(pwd)/fate_workspace
 pipeline init --ip 127.0.0.1 --port 9380
 ```
 - `ip`: The IP address where the service runs.
