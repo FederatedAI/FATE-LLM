@@ -125,7 +125,7 @@ class OffsiteTuningTrainerClient(Seq2SeqFedAVGClient):
         if args.local_rank == 0:
             if args.world_size > 1:
                 model = unwrap_model(model)
-            return_weights = model.get_submodel_weights()
+            return_weights = model.get_submodel_weights(with_emulator=False)
             ctx.arbiter.put('trained_sub_model_para', return_weights)
             logger.info('weights sent back to the server')
 
@@ -153,7 +153,7 @@ class OffsiteTuningTrainerServer(Seq2SeqFedAVGServer):
 
     def on_train_end(self, ctx: Context, aggregator: Aggregator):
         parameters_to_get = ctx.guest.get('trained_sub_model_para')
-        self.model.load_submodel_weights(parameters_to_get)
+        self.model.load_submodel_weights(parameters_to_get, with_emulator=False)
         logger.info('received trained submodel weigths from the client')
 
     def on_federation(self, ctx: Context, aggregator, agg_iter_idx: int):

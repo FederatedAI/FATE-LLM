@@ -1,0 +1,2 @@
+include fate_llm/dataset/data_config/*yaml
+include python/fate_llm/evaluate/tasks/*/*yaml

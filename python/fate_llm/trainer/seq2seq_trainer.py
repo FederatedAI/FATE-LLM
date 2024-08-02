@@ -19,6 +19,7 @@ from typing import Optional
 from fate.ml.nn.trainer.trainer_base import HomoTrainerMixin, FedArguments, get_ith_checkpoint
 import os
 import torch
+import copy
 from torch import nn
 from typing import Any, Dict, List, Callable
 from enum import Enum
@@ -54,7 +55,7 @@ class _S2STrainingArguments(_hf_Seq2SeqTrainingArguments):
     log_level: str = field(default="info")
     deepspeed: Optional[str] = field(default=None)
     save_safetensors: bool = field(default=False)
-    use_cpu: bool = field(default=True)
+    use_cpu: bool = field(default=False)
 
     def __post_init__(self):
         self.push_to_hub = False
@@ -68,6 +69,7 @@ class _S2STrainingArguments(_hf_Seq2SeqTrainingArguments):
 
         super().__post_init__()
 
+DEFAULT_ARGS = _S2STrainingArguments().to_dict()
 
 @dataclass
 class Seq2SeqTrainingArguments(_S2STrainingArguments):
@@ -77,7 +79,7 @@ class Seq2SeqTrainingArguments(_S2STrainingArguments):
         # Call the superclass's to_dict method
         all_args = super().to_dict()
         # Get a dict with default values for all fields
-        default_args = _S2STrainingArguments().to_dict()
+        default_args = copy.deepcopy(DEFAULT_ARGS)
         # Filter out args that are equal to their default values
         set_args = {name: value for name, value in all_args.items() if value != default_args.get(name)}
         return set_args
