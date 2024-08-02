@@ -1,5 +1,5 @@
 # FATE-LLM: FDKT
-The Algorithm is based on paper [Federated Domain-Specific Knowledge Transfer on Large Language Models Using Synthetic Data](https://arxiv.org/pdf/2405.14212), 
+The algorithm is based on paper [Federated Domain-Specific Knowledge Transfer on Large Language Models Using Synthetic Data](https://arxiv.org/pdf/2405.14212), 
 a novel framework that enables domain-specific knowledge transfer from LLMs to SLMs while preserving SLM data privacy.
 
 ## Citation

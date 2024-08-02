@@ -1,6 +1,6 @@
 # FATE-LLM: FedMKT
 
-The Algorithm is based on paper ["FedMKT: Federated Mutual Knowledge Transfer for Large and SmallLanguage Models"](https://arxiv.org/pdf/2406.02224), We integrate its code into the FATE-LLM framework.  
+The algorithm is based on paper ["FedMKT: Federated Mutual Knowledge Transfer for Large and SmallLanguage Models"](https://arxiv.org/pdf/2406.02224), We integrate its code into the FATE-LLM framework.  
 
 ## Citation
 If you publish work that uses FedMKT, please cite FedMKT as follows:
