@@ -1,0 +1,17 @@
+# llmsuite.yaml
+
+data:
+  - file:
+      table_name: "slm_train"
+      namespace: "experiment"
+      role: "guest_0"
+  - file:
+      table_name: "slm_train"
+      namespace: "experiment"
+      role: "host_0"
+
+fdkt_vs_zero_shot:
+  gpt2_ot:
+    pretrained: "gpt2"
+    script: "./fdkt.py"
+    conf: "./fdkt_config.yaml"

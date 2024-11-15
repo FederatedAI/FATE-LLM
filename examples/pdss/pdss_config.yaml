@@ -1,0 +1,60 @@
+# pdss_config.yaml
+
+pipeline:
+  guest: '9999'
+  arbiter: '9999'
+  namespace: 'experiment'
+  name: 'arc_easy'
+  mode: 'infer_and_train'
+  engine_run:
+    cores: 1
+  runner_module: "pdss_runner"
+  runner_class: "PDSSRunner"
+
+models:
+  module_name: 'fate_llm.model_zoo.hf_model'
+  item_name: 'HFAutoModelForCausalLM'
+  pretrained_model_path: 'Qwen1.5-0.5B'
+
+data_collator:
+  module_name: 'fate_llm.data.data_collator.pdss_collator'
+  item_name: 'get_prefix_data_collator'
+  tokenizer_path: 'Qwen1.5-0.5B'
+
+infer_client:
+  module_name: 'fate_llm.algo.inferdpt.init.default_init'
+  item_name: 'InferDPTAPIClientInit'
+  kwargs:
+    api_url: 'http://127.0.0.1:9999/v1'
+    model_name: 'Qwen1.5-0.5B'
+    api_key: 'demo'
+    inferdpt_kit_path: 'pdss'
+
+infer_server:
+  module_name: 'fate_llm.algo.inferdpt.init.default_init'
+  item_name: 'InferDPTAPIServerInit'
+  kwargs:
+    api_url: 'http://127.0.0.1:9999/v1'
+    model_name: 'Qwen1.5-0.5B'
+    api_key: 'demo'
+
+dataset:
+  module_name: 'fate_llm.dataset.pdss_dataset'
+  item_name: 'PrefixDataset'
+  kwargs:
+    tokenizer_path: 'Qwen1.5-0.5B'
+    predict_input_template: |
+      Predict:
+        Question:{{question}}
+        Choices:{{choices.text}}
+    predict_output_template: |
+      {{choices.text[choices.label.index(answerKey)]}}<end>
+    rationale_input_template: |
+      Explain:
+        Question:{{question}}
+        Choices:{{choices.text}}
+    rationale_output_template: |
+      {{infer_result}}<end>
+    max_input_length: 64
+    max_target_length: 64
+    split_key: 'test'

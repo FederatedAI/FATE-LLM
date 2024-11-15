@@ -16,8 +16,10 @@
 
 import os
 from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModelForCausalLM
 from lm_eval.models.huggingface import HFLM
-
+from fate_llm.model_zoo.offsite_tuning.gpt2 import GPT2LMHeadMainModel,GPT2LMHeadSubModel
+import torch
 
 def load_model_from_path(model_path, peft_path=None, peft_config=None, model_args=None):
     model_args = model_args or {}
@@ -27,7 +29,6 @@ def load_model_from_path(model_path, peft_path=None, peft_config=None, model_arg
         else:
             raise ValueError(f"given model path is not valid, please check: {model_path}")
     else:
-        import torch
         from peft import PeftModel, PeftConfig, LoraConfig, TaskType, get_peft_model
         tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         model = AutoModel.from_pretrained(model_path, trust_remote_code=True)
@@ -49,3 +50,34 @@ def load_model(model_path, peft_path=None, model_args=None):
 def load_by_loader(loader_name=None, loader_conf_path=None, peft_path=None):
     #@todo: find loader fn & return loaded model
     pass
+
+def load_by_loader_OT(trained_weights_path=None,model_path=None):
+    # model_weights_path
+    model_weights_path = trained_weights_path
+    
+    # model
+    model = GPT2LMHeadSubModel(
+        model_name_or_path=model_path, 
+        emulator_layer_num=11, 
+        adapter_top_layer_num=2, 
+        adapter_bottom_layer_num=2
+    )
+
+    # load model_weights_path
+    state_dict = torch.load(model_weights_path, map_location='cuda')
+    model.load_state_dict(state_dict)
+
+    return model
+
+def load_by_loader_PDSS(trained_weights_path=None,model_path=None):
+    #  model_weights_path
+    model_weights_path = trained_weights_path
+
+    # model
+    model = AutoModelForCausalLM.from_pretrained(model_path)
+
+    # load model_weights_path
+    state_dict = torch.load(model_weights_path, map_location='cuda')
+    model.load_state_dict(state_dict)
+
+    return model
