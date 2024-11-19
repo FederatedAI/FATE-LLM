@@ -63,12 +63,11 @@ training:
 
 # Paths configuration
 paths:
-  process_data_output_dir: ""
-  llm_pretrained_path: "Llama-2-7b-hf"
-  slm_pretrained_paths:
-    - "opt-1.3b"
-    - "gpt2"
-  vocab_mapping_directory: ""
+  process_data_output_dir: "balance"
+  llm_pretrained_path: "Sheared-LLaMa-1.3B"
+  slm_0_pretrained_path: "opt-1.3b"
+  slm_1_pretrained_path: "gpt2"
+  vocab_mapping_directory: "vocab_mapping_datas"
   slm_to_llm_vocab_mapping_paths:
     - "opt_to_llama.json"
     - "gpt2_to_llama.json"

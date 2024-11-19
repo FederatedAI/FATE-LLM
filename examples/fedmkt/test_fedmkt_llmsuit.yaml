@@ -7,8 +7,15 @@ data:
     table_name: arc_challenge
     namespace: experiment
     role: host_0
-bloom_lora_vs_zero_shot:
+hetero_nn_sshe_binary_0:
   gpt2_fedmkt:
     pretrained: "gpt2"
     script: "./fedmkt.py"
     conf: "./fedmkt_config.yaml"
+    peft_path_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory"
+    tasks:
+      - "arc_challenge"
+  gpt2_zero_shot:
+    pretrained: "gpt2"
+    tasks:
+      - "arc_challenge"

@@ -10,8 +10,8 @@ data:
 fedmkt_lora_vs_zero_shot:
   fedmkt_lora:
     pretrained: "gpt2"
-    script: "./fedmkt.py"
-    conf: "./fedmkt_config.yaml"
+    script: "./offsite_tuning.py"
+    conf: "./offsite_tuning_config.yaml"
     loader: "ot"
     model_weights_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory/pytorch_model.bin"
     tasks:
