@@ -1,48 +1,87 @@
-# params.yaml
-
-paths:
-  llm_pretrained_path: "Sheared-LLaMa-1.3B"
+data:
+  guest:
+    namespace: experiment
+    name: slm_train
+  host:
+    namespace: experiment
+    name: slm_train
+    
+# LLM 配置
+llm:
+  pretrained_path: "Sheared-LLaMa-1.3B"
   embedding_model_path: "opt-1.3b"
-  slm_pretrained_path: "gpt2"
-  slm_data_path: "train.json"  # should be absolute path
 
-pipeline:
-  guest: '9999'  # Replace this party id with actual guest party id in your environment
-  arbiter: '9999'  # Replace this party id with actual arbiter party id in your environment
-  namespace: 'experiment'
-  name: 'slm_train'
-  engine_run:
-    cores: 1
+  dataset:
+    tokenizer_name_or_path: "Sheared-LLaMa-1.3B"
+    need_preprocess: true
+    dataset_name: "yelp_review"
+    data_part: "train.json"
+    load_from: "json"
+    few_shot_num_per_label: 1
 
-training:
-  use_cpu: false
-  num_train_epochs: 1
-  per_device_train_batch_size: 2
-  slm_generation_batch_size: 32
-  seq_num_for_single_category: 200
-  slm_generation_config:
-    max_new_tokens: 256
-    do_sample: true
-    temperature: 1.0
-    top_k: 50
-    top_p: 0.9
-    repetition_penalty: 1.0
+  training_args:
+    sample_num_per_cluster: 4
+    filter_prompt_max_length: 16384
+    filter_generation_config:
+      max_tokens: 3000
+    use_cpu: false
+    aug_generation_config:
+      max_tokens: 3000
+      temperature: 0.8
+      top_p: 0.9
+    aug_prompt_num: 200
+
+  inference_inst_conf:
+    module_name: "fate_llm.algo.fdkt.inference_inst"
+    item_name: "api_init"
+    kwargs:
+      api_url: "http://127.0.0.1:9999/v1/"
+      model_name: "Sheared-LLaMa-1.3B"
+      api_key: "demo"
+
+# SLM 配置
+slm:
+  pretrained_path: "gpt2"
+  data_path: "train.json"
+
+  model:
+    torch_dtype: "bfloat16"
+
+  tokenizer:
+    tokenizer_name_or_path: "gpt2"
     pad_token_id: 50256
 
-dataset:
-  module_name: 'flex_dataset'
-  item_name: 'FlexDataset'
-  tokenizer_name_or_path: "gpt2"
-  need_preprocess: true
-  dataset_name: "yelp_review"
-  data_part: "train"
-  load_from: "json"
-  select_num: 2000
-  few_shot_num_per_label: 1
+  training_args:
+    use_cpu: false
+    device_id: 1
+    num_train_epochs: 1
+    per_device_train_batch_size: 2
+    slm_generation_batch_size: 32
+    seq_num_for_single_category: 200
+    slm_generation_config:
+      max_new_tokens: 256
+      do_sample: true
+      temperature: 1.0
+      top_k: 50
+      top_p: 0.9
+      repetition_penalty: 1.0
+      pad_token_id: 50256
 
-data_collator:
-  module_name: 'data_collator.cust_data_collator'
-  item_name: 'get_seq2seq_data_collator'
-  tokenizer_name_or_path: "gpt2"
-  label_pad_token_id: 50256
-  pad_token_id: 50256
+  dataset:
+    tokenizer_name_or_path: "gpt2"
+    need_preprocess: true
+    dataset_name: "yelp_review"
+    data_part: "train"
+    load_from: "json"
+    select_num: 2000
+    few_shot_num_per_label: 1
+
+  optimizer:
+    type: "Adam"
+    params:
+      lr: 0.01
+
+  data_collator:
+    label_pad_token_id: 50256
+    tokenizer_name_or_path: "gpt2"
+    pad_token_id: 50256

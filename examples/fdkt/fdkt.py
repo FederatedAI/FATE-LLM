@@ -7,11 +7,12 @@ from fate_client.pipeline.components.fate.reader import Reader
 from fate_client.pipeline.components.fate.nn.torch import nn, optim
 import argparse
 
-def load_params(param_file):
-    """Load and parse the YAML params file."""
-    with open(param_file, 'r') as f:
-        return yaml.safe_load(f)
-
+def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace=""):
+    if isinstance(config, str):
+        config = test_utils.load_job_config(config)
+    if isinstance(param, str):
+        param = yaml.safe_load(param)
+        
 def get_llm_conf(params):
     embedding_model = LLMModelLoader(
         "embedding_transformer.st_model",
@@ -118,15 +119,17 @@ def get_slm_conf(params):
     )
 
 
-def main(config_file, param_file):
-    params = load_params(param_file)
-
-    guest = params['pipeline']['guest']
-    arbiter = params['pipeline']['arbiter']
     pipeline = FateFlowPipeline().set_parties(guest=guest, arbiter=arbiter)
+    pipeline.bind_local_path(path=slm_data_path, namespace=param["data"]["guest"]["namespace"], 
+                                                 name=param["data"]["guest"]["name"])
+
 
     reader_0 = Reader("reader_0", runtime_parties=dict(guest=guest))
-    reader_0.guest.task_parameters(namespace=params['pipeline']['namespace'], name=params['pipeline']['name'])
+    reader_0.guest.task_parameters(
+        namespace=param["data"]["guest"]["namespace"],
+        name=param["data"]["guest"]["name"]
+    )
+
 
     homo_nn_0 = HomoNN(
         'homo_nn_0',
@@ -135,11 +138,16 @@ def main(config_file, param_file):
         runner_class="FDKTRunner",
     )
 
-    homo_nn_0.arbiter.task_parameters(runner_conf=get_llm_conf(params))
-    homo_nn_0.guest.task_parameters(runner_conf=get_slm_conf(params))
+    homo_nn_0.arbiter.task_parameters(
+        runner_conf=get_llm_conf()
+    )
+
+    homo_nn_0.guest.task_parameters(
+        runner_conf=get_slm_conf()
+    )
 
     pipeline.add_tasks([reader_0, homo_nn_0])
-    pipeline.conf.set("task", dict(engine_run=params['pipeline']['engine_run']))
+    pipeline.conf.set("task", dict(engine_run={"cores": 1}))
 
     pipeline.compile()
     pipeline.fit()
@@ -147,7 +155,7 @@ def main(config_file, param_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("FDKT JOB")
-    parser.add_argument("-c", "--config", type=str, help="Path to config file", default="./fdkt_config.yaml")
-    parser.add_argument("-p", "--param", type=str, help="Path to parameter file", default="./fdkt_tuning_llmsuite.yaml")
+    parser.add_argument("-c", "--config", type=str, help="Path to config file", default="./config.yaml")
+    parser.add_argument("-p", "--param", type=str, help="Path to parameter file", default="./fdkt_config.yaml")
     args = parser.parse_args()
     main(args.config, args.param)

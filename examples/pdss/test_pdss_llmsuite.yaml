@@ -1,13 +1,4 @@
-data:
-  - file: 
-    table_name: arc_easy
-    namespace: experiment
-    role: guest_0
-  - file: 
-    table_name: arc_easy
-    namespace: experiment
-    role: host_0
-fedmkt_lora_vs_zero_shot:
+pdss_lora_vs_zero_shot:
   fedmkt_lora:
     pretrained: "Qwen1.5-0.5B"
     script: "./pdss.py"
@@ -17,7 +8,7 @@ fedmkt_lora_vs_zero_shot:
     tasks:
       - "arc_easy"
   bloom_zero_shot:
-    pretrained: "gpt2"
+    pretrained: "Qwen1.5-0.5B"
     tasks:
       - "arc_easy"
 

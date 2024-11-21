@@ -7,7 +7,7 @@ data:
     table_name: arc_challenge
     namespace: experiment
     role: host_0
-hetero_nn_sshe_binary_0:
+fedmkt_vs_zero_shot:
   gpt2_fedmkt:
     pretrained: "gpt2"
     script: "./fedmkt.py"
