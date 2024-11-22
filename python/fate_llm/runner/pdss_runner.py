@@ -112,7 +112,7 @@ class PDSSRunner(NNRunner):
         if init_conf is None:
             return None
         loader = Loader.from_dict(init_conf)
-        init_inst = loader.load_item()(self.get_context())
+        init_inst = loader.load_item()(self.get_context(), **init_conf.get("kwargs", {}))
         assert isinstance(init_inst, InferInit), 'Need a InferInit class for initialization, but got {}'.format(type(init_inst))
         infer_inst = init_inst.get_inst()
         logger.info('inferdpt inst loaded')
