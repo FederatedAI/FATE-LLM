@@ -12,37 +12,37 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         config = test_utils.load_job_config(config)
     if isinstance(param, str):
         param = yaml.safe_load(param)
-    # 加载配置文件
+    # Load the configuration file
     parties = config.parties
     guest = parties.guest[0]
     arbiter = parties.arbiter[0]  
     pretrained_model_path = param["model"]["pretrained_model_name_or_path"]
     
-    # 创建流水线
+    # Create pipeline
     pipeline = FateFlowPipeline().set_parties(guest=guest, arbiter=arbiter)
     
-    # 设置数据读取器
+    # Set up the data reader
     reader_0 = Reader("reader_0", runtime_parties=dict(guest=guest))
     reader_0.guest.task_parameters(
         namespace="experiment",
         name="arc_easy"
     )
 
-    # 模型加载配置
+    # Model loading configuration
     model_conf = Loader(
         module_name='fate_llm.model_zoo.hf_model',
         item_name='HFAutoModelForCausalLM',
         pretrained_model_name_or_path=param["model"]["pretrained_model_name_or_path"]
     ).to_dict()
 
-    # 数据处理器配置
+    # Data Processor Configuration
     data_collator_conf = Loader(
         module_name='fate_llm.data.data_collator.pdss_collator',
         item_name='get_prefix_data_collator',
         tokenizer_name_or_path=param["data_collator"]["tokenizer_name_or_path"]
     ).to_dict()
 
-    # 客户端推理初始化配置
+    # Client reasoning initialization configuration
     infer_init_conf_client = dict(
         module_name='fate_llm.algo.inferdpt.init.default_init',
         item_name='InferDPTAPIClientInit',
@@ -54,7 +54,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         )
     )
 
-    # 服务器推理初始化配置
+    # Server inference initialization configuration
     infer_init_conf_server = dict(
         module_name='fate_llm.algo.inferdpt.init.default_init',
         item_name='InferDPTAPIServerInit',
@@ -65,7 +65,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         )
     )
 
-    # 数据集配置
+    # Dataset configuration
     dataset_conf = dict(
         module_name='fate_llm.dataset.pdss_dataset',
         item_name='PrefixDataset',
@@ -81,19 +81,19 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         )
     )
 
-    # 编码和解码模板
+    # Encoding and decoding templates
     encoder_prompt = param["template"]["encoder_prompt"]
     decoder_prompt = param["template"]["decoder_prompt"]
     instruction_prompt = param["template"]["instruction_prompt"]
 
-    # 推理参数
+    # Inference parameters
     remote_inference_kwargs = param["inference_params"]["remote"]
     local_inference_kwargs = param["inference_params"]["local"]
 
-    # DeepSpeed 配置
+    # DeepSpeed ​​Configuration
     ds_config = param["deepspeed_config"]
 
-    # 训练参数
+    # Training parameters
     training_args_dict = dict(
         per_device_train_batch_size=param["training"]["batch_size"],
         gradient_accumulation_steps=param["training"]["gradient_accumulation_steps"],
@@ -104,7 +104,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         log_level=param["training"]["log_level"]
     )
 
-    # 设置客户端和服务器模型的配置
+    # Set the configuration of the client and server models
     client_conf = dict(
         model_conf=model_conf,
         dataset_conf=dataset_conf,

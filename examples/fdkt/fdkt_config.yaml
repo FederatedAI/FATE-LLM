@@ -8,21 +8,21 @@ data:
 
 
 datasets:
-  slm_data_path: "/data/projects/fate/fate_llm/examples/fdkt/train.json" # should be absolute path
+  slm_data_path: "train.json" # should be absolute path
 
-# 推理初始化配置
+# Inference initialization configuration
 
 client:
   api_url: "http://127.0.0.1:9999/v1"
   api_key: "demo"
 
-# LLM 配置
+# LLM Configuration
 llm:
-  pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Sheared-LLaMa-1.3B/"
-  embedding_model_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/opt-1.3b"
+  pretrained_path: "Sheared-LLaMa-1.3B" # Please add your model path
+  embedding_model_path: "opt-1.3b" # Please add your model path
 
   dataset:
-    tokenizer_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Sheared-LLaMa-1.3B/"
+    tokenizer_name_or_path: "Sheared-LLaMa-1.3B" # Please add your model path
     need_preprocess: true
     dataset_name: "yelp_review"
     data_part: "train.json"
@@ -46,19 +46,19 @@ llm:
     item_name: "api_init"
     kwargs:
       api_url: "http://127.0.0.1:9999/v1/"
-      model_name: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Sheared-LLaMa-1.3B/"
+      model_name: "Sheared-LLaMa-1.3B"
       api_key: "demo"
 
-# SLM 配置
+# SLM Configuration
 slm:
-  pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
-  data_path: "train.json"
+  pretrained_path: "gpt2" # Please add your model path
+  data_path: "train.json" # Please add your datasets path
 
   model:
     torch_dtype: "bfloat16"
 
   tokenizer:
-    tokenizer_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+    tokenizer_name_or_path: "gpt2" # Please add your model path
     pad_token_id: 50256
 
   training_args:
@@ -78,7 +78,7 @@ slm:
       pad_token_id: 50256
 
   dataset:
-    tokenizer_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+    tokenizer_name_or_path: "gpt2" # Please add your model path
     need_preprocess: true
     dataset_name: "yelp_review"
     data_part: "train"
@@ -93,5 +93,5 @@ slm:
 
   data_collator:
     label_pad_token_id: 50256
-    tokenizer_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+    tokenizer_name_or_path: "gpt2" # Please add your model path
     pad_token_id: 50256

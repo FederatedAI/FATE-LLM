@@ -148,7 +148,7 @@ class LlmSuite(object):
             )
         suite = LlmSuite(pairs=pairs, path=path)
         return suite
-#add 144-204
+
     @staticmethod
     def style_table(txt):
         colored_txt = txt.replace("success", f"{TxtStyle.TRUE_VAL}success{TxtStyle.END}")

@@ -13,23 +13,23 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         config = test_utils.load_job_config(config)
     if isinstance(param, str):
         param = yaml.safe_load(param)
-    # 加载配置文件
+    # Load the configuration file
     parties = config.parties  
     guest = parties.guest[0]
     arbiter = parties.arbiter[0]  
     pretrained_model_path = param["pretrained_model_path"]
     
-    # 创建流水线
+    # Create pipeline
     pipeline = FateFlowPipeline().set_parties(guest=guest, arbiter=arbiter)
     
-    # 设置数据读取器
+    # Set up the data reader
     reader_0 = Reader("reader_0", runtime_parties=dict(guest=guest))
     reader_0.guest.task_parameters(
         namespace=param["data"]["guest"]["namespace"],
         name=param["data"]["guest"]["name"]
     )
     
-    # 加载 LLM 模型
+    # Load the LLM model
     client_model = LLMModelLoader(
         module_name='offsite_tuning.gpt2', item_name='GPT2LMHeadSubModel',
         model_name_or_path=pretrained_model_path,
@@ -46,7 +46,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         adapter_bottom_layer_num=param["model_config"]["adapter_bottom_layer_num"]
     )
     
-    # 加载数据集和数据处理器
+    # Load the dataset and data processor
     dataset = LLMDatasetLoader(
         module_name='qa_dataset', item_name='QaDataset',
         tokenizer_name_or_path=pretrained_model_path,
@@ -59,9 +59,9 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         tokenizer_name_or_path=pretrained_model_path
     )    
     
-    # DeepSpeed 配置
+    # DeepSpeed config
     ds_config = param["deepspeed_config"]
-    # 训练参数设置
+    # Training parameter settings
     train_args = Seq2SeqTrainingArguments(
         per_device_train_batch_size=param["training"]["batch_size"],
         learning_rate=param["training"]["lr"],
@@ -76,7 +76,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         fp16=True
     )
     
-    # 设置客户端和服务器模型的配置
+    # Set the configuration of the client and server models
     client_conf = get_conf_of_ot_runner(
         model=client_model,
         dataset=dataset,
@@ -95,7 +95,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         aggregate_model=False
     )
     
-    # 设置 HomoNN 组件
+    # Set up the HomoNN component
     homo_nn_0 = HomoNN(
         'nn_0',
         train_data=reader_0.outputs["output_data"],
@@ -105,9 +105,9 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     homo_nn_0.guest.task_parameters(runner_conf=client_conf)
     homo_nn_0.arbiter.task_parameters(runner_conf=server_conf)
     
-    # 使用 DeepSpeed
+    # Using DeepSpeed
     homo_nn_0.guest.conf.set("launcher_name", "deepspeed")
-    # 构建任务流水线
+    # Build a task pipeline
     pipeline.add_tasks([reader_0, homo_nn_0])
     pipeline.conf.set("task", dict(engine_run={"cores": 1}))
     pipeline.compile()

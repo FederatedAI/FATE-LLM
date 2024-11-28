@@ -1,14 +1,14 @@
 data:
-  - file: /data/projects/fate/fate_llm/examples/fdkt/train.json
+  - file: examples/data/train.json # Please add your datasets path
     table_name: slm_train
     namespace: experiment
     role: guest_0
-  - file: /data/projects/fate/fate_llm/examples/fdkt/train.json
+  - file: examples/data/train.json # Please add your datasets path
     table_name: slm_train
     namespace: experiment
     role: host_0
 fdkt_lora:
   fdkt_lora:
-    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Sheared-LLaMa-1.3B"
+    pretrained: "Sheared-LLaMa-1.3B" # Please add your model path
     script: "./fdkt.py"
     conf: "./fdkt_config.yaml"

@@ -6,10 +6,10 @@ data:
     namespace: experiment
     name: sciq
 
-# 模型路径
-pretrained_model_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+# Model path
+pretrained_model_path: "gpt2" # Please add your model path
 
-# 训练参数
+# Training parameters
 training:
   batch_size: 1
   lr: 5e-5
@@ -18,13 +18,13 @@ training:
   disable_tqdm: false
   dataloader_num_workers: 4
 
-# LLM模型配置
+# LLM model configuration
 model_config:
   emulator_layer_num: 11
   adapter_top_layer_num: 2
   adapter_bottom_layer_num: 2
 
-# DeepSpeed配置
+# DeepSpeed ​​Configuration
 deepspeed_config:
   train_micro_batch_size_per_gpu: 1
   optimizer:

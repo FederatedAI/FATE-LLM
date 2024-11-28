@@ -13,7 +13,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         config = test_utils.load_job_config(config)
     if isinstance(param, str):
         param = yaml.safe_load(param)
-    # 加载配置文件
+    # Load the configuration file
     parties = config.parties
     guest = parties.guest[0]
     arbiter = parties.arbiter[0]

@@ -6,29 +6,29 @@ data:
     namespace: experiment
     name: arc_easy
     
-# 模型配置
+# Model configuration
 model:
-  pretrained_model_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
+  pretrained_model_name_or_path: "Qwen1.5-0.5B" # Please add your model path
 
-# 数据处理器配置
+# Data Processor Configuration
 data_collator:
-  tokenizer_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
+  tokenizer_name_or_path: "Qwen1.5-0.5B" # Please add your model path
 
-# 推理初始化配置
+# Inference initialization configuration
 inference:
   client:
     api_url: "http://127.0.0.1:9999/v1"
-    api_model_name: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
+    api_model_name: "Qwen1.5-0.5B" # Please add your model path
     api_key: "demo"
-    inferdpt_kit_path: "/data/projects/fate/fate_llm/examples/pdss"
+    inferdpt_kit_path: "/examples/pdss" # Please add your inferdpt_kit_path
   server:
     api_url: "http://127.0.0.1:9999/v1"
-    api_model_name: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
+    api_model_name: "Qwen1.5-0.5B" # Please add your model path
     api_key: "demo"
 
-# 数据集配置
+# Dataset configuration
 dataset:
-  tokenizer_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
+  tokenizer_path: "Qwen1.5-0.5B" # Please add your model path
   predict_input_template: |
     Predict:
     Question:{{question}}
@@ -45,7 +45,7 @@ dataset:
   max_target_length: 64
   split_key: "test"
 
-# 编码和解码模板
+# Encoding and decoding templates
 template:
   encoder_prompt: |
     {{question}}
@@ -82,7 +82,7 @@ template:
     <|im_end|>
     <|im_start|>assistant
 
-# 推理参数
+# Inference parameters
 inference_params:
   remote:
     stop: ['<|im_end|>', '<end>', '<end>\n', '<end>\n\n', '.\n\n\n\n\n', '<|end_of_text|>', '>\n\n\n']
@@ -93,7 +93,7 @@ inference_params:
     temperature: 0.01
     max_tokens: 256
 
-# DeepSpeed配置
+# DeepSpeed ​​Configuration
 deepspeed_config:
   train_micro_batch_size_per_gpu: 1
   gradient_accumulation_steps: 8
@@ -106,7 +106,7 @@ deepspeed_config:
   zero_optimization:
     stage: 0
 
-# 训练参数
+# Training parameters
 training:
   batch_size: 1
   gradient_accumulation_steps: 8
@@ -114,5 +114,5 @@ training:
   max_steps: 30
   log_level: "info"
 
-# 模式配置
+# Mode Configuration
 mode: "infer_and_train"

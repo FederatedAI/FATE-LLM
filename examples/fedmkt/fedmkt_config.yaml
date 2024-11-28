@@ -71,11 +71,11 @@ training:
 
 # Paths configuration
 paths:
-  process_data_output_dir: "/data/projects/fate_llm_22/fate/fate/examples/pellm/arc_e/balance"
-  llm_pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Sheared-LLaMa-1.3B"
-  slm_0_pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/opt-1.3b"
-  slm_1_pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
-  vocab_mapping_directory: "/data/projects/mgq/exp/isomerism/vocab_mapping_datas/"
+  process_data_output_dir: "examples/data/arc_e" # Please add your datasets path
+  llm_pretrained_path: "Sheared-LLaMa-1.3B" # Please add your mdoel path
+  slm_0_pretrained_path: "opt-1.3b" # Please add your mdoel path
+  slm_1_pretrained_path: "gpt2" # Please add your mdoel path
+  vocab_mapping_directory: "vocab_mapping_datas" # Please add your vocab_mapping datasets path
   slm_to_llm_vocab_mapping_paths:
     - "opt_to_llama.json"
     - "gpt2_to_llama.json"

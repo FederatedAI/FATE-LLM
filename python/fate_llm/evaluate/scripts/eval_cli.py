@@ -81,41 +81,33 @@ class MyCustomLM(HFLM):
                  model_path: str, 
                  tokenizer: Optional[Union[str, transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast]] = None, 
                  rank=0, world_size=1, **kwargs):
-        # 调用父类的构造函数
+
         super().__init__(pretrained=model_path, **kwargs)
 
-        # 设置设备
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # 将预训练的模型加载到指定设备
         self._model = pretrained.to(self._device)
 
-        # 初始化分词器
         if tokenizer is None:
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         else:
             self.tokenizer = tokenizer
 
-        # 添加一个新的pad_token
         if self.tokenizer.pad_token is None:
             self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
-        # 初始化其他所需的属性
         self._rank = rank
         self._world_size = world_size
         self.batch_size_per_gpu = 4
 
-        # 从预训练模型中获取配置
-        self._config = model_path  # 保证config的获取
+        self._config = model_path  # config
         self._max_length = self._config.max_length if hasattr(self._config, 'max_length') else 1024
         self._logits_cache = None
 
     def loglikelihood_rolling(self, requests: List[Tuple[str, str]]) -> List[Tuple[float, bool]]:
-        # 实现滚动对数似然度
         return [(0.0, True) for _ in requests]
 
     def generate_until(self, requests: List[Tuple[str, str]]) -> List[str]:
-        # 简单的返回生成的文本占位符，根据实际情况实现
         return ["Generated text" for _ in requests]
 
 def run_job_eval(job, eval_conf):

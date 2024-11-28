@@ -140,13 +140,8 @@ source fate/bin/init_env.sh
 fate_test llmsuite -i fate_llm/examples/fdkt/ --yes
 ~~~
 
-##### 4. 结果
-
-示例结果如下，仅供参考
-![1732521300495](fdkt_fate_test_quick_start_zh.assets/1732518535786.png)
-
 **注意：** fdkt暂不支持数据评估
-##### 5. 问题定位
+##### 4. 问题定位
 
 ​	任务运行失败，报错，会在当前执行命令的目录下生成一个logs目录，找到对应的任务，检查stdout，或者exception.log检查报错原因。
 
