@@ -1,6 +1,14 @@
-# llmsuite.yaml
-fdkt_vs_zero_shot:
-  gpt2_ot:
-    pretrained: "gpt2"
+data:
+  - file: /data/projects/fate/fate_llm/examples/fdkt/train.json
+    table_name: slm_train
+    namespace: experiment
+    role: guest_0
+  - file: /data/projects/fate/fate_llm/examples/fdkt/train.json
+    table_name: slm_train
+    namespace: experiment
+    role: host_0
+fdkt_lora:
+  fdkt_lora:
+    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Sheared-LLaMa-1.3B"
     script: "./fdkt.py"
     conf: "./fdkt_config.yaml"

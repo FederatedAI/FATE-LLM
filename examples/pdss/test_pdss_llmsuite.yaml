@@ -1,14 +1,23 @@
+data:
+  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/arc_e/balance
+    table_name: arc_easy
+    namespace: experiment
+    role: guest_0
+  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/arc_e/balance
+    table_name: arc_easy
+    namespace: experiment
+    role: host_0
 pdss_lora_vs_zero_shot:
-  fedmkt_lora:
-    pretrained: "Qwen1.5-0.5B"
+  pdss_lora:
+    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B"
     script: "./pdss.py"
     conf: "./pdss_config.yaml"
     loader: "pdss"
     model_weights_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory/pytorch_model.bin"
     tasks:
       - "arc_easy"
-  bloom_zero_shot:
-    pretrained: "Qwen1.5-0.5B"
+  Qwen_zero_shot:
+    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B"
     tasks:
       - "arc_easy"
 

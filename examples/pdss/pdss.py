@@ -16,7 +16,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     parties = config.parties
     guest = parties.guest[0]
     arbiter = parties.arbiter[0]  
-    pretrained_model_path = param["pretrained_model_path"]
+    pretrained_model_path = param["model"]["pretrained_model_name_or_path"]
     
     # 创建流水线
     pipeline = FateFlowPipeline().set_parties(guest=guest, arbiter=arbiter)
@@ -24,8 +24,8 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     # 设置数据读取器
     reader_0 = Reader("reader_0", runtime_parties=dict(guest=guest))
     reader_0.guest.task_parameters(
-        namespace=param["data"]["guest"]["namespace"],
-        name=param["data"]["guest"]["name"]
+        namespace="experiment",
+        name="arc_easy"
     )
 
     # 模型加载配置
@@ -48,7 +48,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         item_name='InferDPTAPIClientInit',
         kwargs=dict(
             api_url=param["inference"]["client"]["api_url"],
-            model_name=param["inference"]["client"]["model_name"],
+            api_model_name=param["inference"]["client"]["api_model_name"],
             api_key=param["inference"]["client"]["api_key"],
             inferdpt_kit_path=param["inference"]["client"]["inferdpt_kit_path"]
         )
@@ -60,7 +60,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         item_name='InferDPTAPIServerInit',
         kwargs=dict(
             api_url=param["inference"]["server"]["api_url"],
-            model_name=param["inference"]["server"]["model_name"],
+            api_model_name=param["inference"]["server"]["api_model_name"],
             api_key=param["inference"]["server"]["api_key"]
         )
     )
@@ -131,8 +131,8 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     homo_nn_0 = HomoNN(
         'nn_0',
         train_data=reader_0.outputs["output_data"],
-        runner_module=params['pipeline']['runner_module'],
-        runner_class=params['pipeline']['runner_class']
+        runner_module="pdss_runner",
+        runner_class="PDSSRunner"
     )
 
     homo_nn_0.guest.task_parameters(runner_conf=client_conf)

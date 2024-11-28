@@ -8,27 +8,27 @@ data:
     
 # 模型配置
 model:
-  pretrained_model_name_or_path: "Qwen1.5-0.5B"
+  pretrained_model_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
 
 # 数据处理器配置
 data_collator:
-  tokenizer_name_or_path: "Qwen1.5-0.5B"
+  tokenizer_name_or_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
 
 # 推理初始化配置
 inference:
   client:
     api_url: "http://127.0.0.1:9999/v1"
-    model_name: "Qwen1.5-0.5B"
+    api_model_name: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
     api_key: "demo"
-    inferdpt_kit_path: "pdss"
+    inferdpt_kit_path: "/data/projects/fate/fate_llm/examples/pdss"
   server:
     api_url: "http://127.0.0.1:9999/v1"
-    model_name: "Qwen1.5-0.5B"
+    api_model_name: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
     api_key: "demo"
 
 # 数据集配置
 dataset:
-  tokenizer_path: "Qwen1.5-0.5B"
+  tokenizer_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Qwen1.5-0.5B/"
   predict_input_template: |
     Predict:
     Question:{{question}}

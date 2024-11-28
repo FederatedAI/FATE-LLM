@@ -17,18 +17,17 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         
     # load config
     parties = config.parties
-    guest = parties.['guest'][0]  # replace with actual guest party ID
-    host = parties.['host'][0]    # replace with actual host party ID
-    arbiter = parties.['arbiter'][0]  # replace with actual arbiter party ID
+    guest = parties.guest[0]  # replace with actual guest party ID
+    host = parties.host[0]    # replace with actual host party ID
+    arbiter = parties.arbiter[0]  # replace with actual arbiter party ID
     
     process_data_output_dir = param['paths']['process_data_output_dir']
-    llm_pretrained_path = param['paths']['llm_pretrained_path']
+    pretrained_model_path = param['paths']['llm_pretrained_path']
     slm_0_pretrained_path = param['paths']['slm_0_pretrained_path']
     slm_1_pretrained_path = param['paths']['slm_1_pretrained_path']
-    slm_pretrained_paths = param['paths']['slm_pretrained_paths']
     llm_slm_pairs = [
-        (llm_pretrained_path, slm_0_pretrained_path),
-        (llm_pretrained_path, slm_1_pretrained_path)
+        (pretrained_model_path, slm_0_pretrained_path),
+        (pretrained_model_path, slm_1_pretrained_path)
     ]
     vocab_mapping_directory = param['paths']['vocab_mapping_directory']
 
@@ -40,7 +39,14 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     ]
     slm_pretrained_paths = [slm_0_pretrained_path, slm_1_pretrained_path]
     slm_models = param['models']['slm_models']
-    slm_lora_target_modules = param['lora_config']['slm_lora_target_modules']
+    slm_lora_target_modules = [
+        ["q_proj", "v_proj"],
+        ["c_attn"]
+    ]
+    slm_models = [
+        ("pellm.opt", "OPT"),
+        ("pellm.gpt2", "GPT2CLM")
+    ]
     
     def get_llm_conf():
         lora_config = LoraConfig(
@@ -56,7 +62,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         llm_model = LLMModelLoader(
             "pellm.llama",
             "LLaMa",
-            pretrained_path=llm_pretrained_path,
+            pretrained_path=pretrained_model_path,
             peft_type="LoraConfig",
             peft_config=lora_config.to_dict(),
             torch_dtype="bfloat16"
@@ -65,7 +71,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         pub_dataset = LLMDatasetLoader(
             "qa_dataset",
             "QaDataset",
-            tokenizer_name_or_path=llm_pretrained_path,
+            tokenizer_name_or_path=pretrained_model_path,
             need_preprocess=True,
             dataset_name="arc_challenge",
             data_part="common",
@@ -88,7 +94,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
             weight_decay=param['training']['llm']['weight_decay'],
             max_grad_norm=param['training']['llm']['max_grad_norm'],
             use_cpu=param['training']['llm']['use_cpu'],
-            vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
+            vocab_size=AutoConfig.from_pretrained(pretrained_model_path).vocab_size,
         )
 
         fed_args = FedAVGArguments(
@@ -99,7 +105,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         tokenizer = LLMDataFuncLoader(
             "tokenizers.cust_tokenizer",
             "get_tokenizer",
-            tokenizer_name_or_path=llm_pretrained_path
+            tokenizer_name_or_path=pretrained_model_path
         )
 
         slm_tokenizers = [
@@ -194,7 +200,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         llm_tokenizer = LLMDataFuncLoader(
             "tokenizers.cust_tokenizer", 
             "get_tokenizer", 
-            tokenizer_name_or_path=llm_pretrained_path
+            tokenizer_name_or_path=pretrained_model_path
         )
 
         data_collator = LLMDataFuncLoader(
@@ -216,7 +222,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
             save_trainable_weights_only=True,
             data_collator=data_collator
         )
-    
+        
     pipeline = FateFlowPipeline().set_parties(guest=guest, arbiter=arbiter, host=host)
     pipeline.bind_local_path(path=process_data_output_dir, namespace="experiment", name="arc_challenge")
     
@@ -229,7 +235,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         namespace=param['data']['host']['namespace'],
         name=param['data']['host']['name']
     )
-
+    
     homo_nn_0 = HomoNN(
         'nn_0',
         train_data=reader_0.outputs["output_data"],
@@ -244,7 +250,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     homo_nn_0.guest.task_parameters(
         runner_conf=get_slm_conf(slm_idx=0)
     )
-    
+
     for idx in range(1):
         homo_nn_0.hosts[idx].task_parameters(
             runner_conf=get_slm_conf(slm_idx=idx + 1)

@@ -1,3 +1,11 @@
+# Data configuration
+data:
+  guest:
+    namespace: experiment
+    name: arc_challenge
+  host:
+    namespace: experiment
+    name: arc_challenge
 # fedmkt_config.yaml
 
 # Configuration for Lora
@@ -63,11 +71,11 @@ training:
 
 # Paths configuration
 paths:
-  process_data_output_dir: "balance"
-  llm_pretrained_path: "Sheared-LLaMa-1.3B"
-  slm_0_pretrained_path: "opt-1.3b"
-  slm_1_pretrained_path: "gpt2"
-  vocab_mapping_directory: "vocab_mapping_datas"
+  process_data_output_dir: "/data/projects/fate_llm_22/fate/fate/examples/pellm/arc_e/balance"
+  llm_pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/Sheared-LLaMa-1.3B"
+  slm_0_pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/opt-1.3b"
+  slm_1_pretrained_path: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+  vocab_mapping_directory: "/data/projects/mgq/exp/isomerism/vocab_mapping_datas/"
   slm_to_llm_vocab_mapping_paths:
     - "opt_to_llama.json"
     - "gpt2_to_llama.json"
@@ -82,15 +90,6 @@ models:
   slm_models:
     - ["pellm.opt", "OPT"]
     - ["pellm.gpt2", "GPT2CLM"]
-
-# Data configuration
-data:
-  guest:
-    namespace: "experiment"
-    name: "arc_challenge"
-  host:
-    namespace: "experiment"
-    name: "arc_challenge"
 
 # Example: Additional custom configuration
 custom_config:

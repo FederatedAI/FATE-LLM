@@ -1,15 +1,15 @@
 data:
-  - file: 
+  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/sciq_t 
     table_name: sciq
     namespace: experiment
     role: guest_0
-  - file: 
+  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/sciq_t
     table_name: sciq
     namespace: experiment
     role: host_0
 fedmkt_lora_vs_zero_shot:
   fedmkt_lora:
-    pretrained: "gpt2"
+    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
     script: "./offsite_tuning.py"
     conf: "./offsite_tuning_config.yaml"
     loader: "ot"
@@ -17,6 +17,6 @@ fedmkt_lora_vs_zero_shot:
     tasks:
       - "sciq"
   bloom_zero_shot:
-    pretrained: "gpt2"
+    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
     tasks:
       - "sciq"

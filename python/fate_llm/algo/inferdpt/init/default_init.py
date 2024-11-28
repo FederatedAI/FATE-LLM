@@ -30,7 +30,7 @@ class InferDPTAPIClientInit(InferInit):
     inferdpt_kit_path = ''
     eps = os.environ.get("FATE_LLM_INFERDPT_EPS", 3.0)
 
-    def __init__(self, ctx, api_url=None, api_model_name=None, inferdpt_kit_path=None):
+    def __init__(self, ctx, api_url=None, api_model_name=None, inferdpt_kit_path=None, api_key=None, eps=None):
         super().__init__(ctx)
         self.ctx = ctx
 
@@ -40,6 +40,10 @@ class InferDPTAPIClientInit(InferInit):
             self.api_model_name = api_model_name
         if inferdpt_kit_path is not None:
             self.inferdpt_kit_path = inferdpt_kit_path
+        if api_key is not None:
+            self.api_key = api_key
+        if eps is not None:
+            self.eps = eps
 
     def get_inst(self)-> InferDPTClient:
         if self.api_key is None:
@@ -58,13 +62,16 @@ class InferDPTAPIServerInit(InferInit):
     api_model_name = ''
     api_key = os.environ.get("FATE_LLM_API_KEY", "")
 
-    def __init__(self, ctx, api_url, api_model_name):
+    def __init__(self, ctx, api_url, api_model_name,  api_key=None):
         super().__init__(ctx)
         self.ctx = ctx
         self.api_url = api_url
         self.api_model_name = api_model_name
+        
+        if api_key is not None:
+            self.api_key = api_key
 
-    def get_inst(self)-> InferDPTServer:
+    def get_inst(self) -> InferDPTServer:
         if self.api_key is None:
             raise ValueError("Please set the environment variable FATE_LLM_API_KEY for llm querying")
         if self.api_model_name is None or self.api_url is None:

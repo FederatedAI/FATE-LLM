@@ -1,0 +1,21 @@
+data:
+  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/arc_e/balance
+    table_name: arc_challenge
+    namespace: experiment
+    role: guest_0
+  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/arc_e/balance
+    table_name: arc_challenge
+    namespace: experiment
+    role: host_0
+fedmkt_lora_vs_zero_shot:
+  gpt2_fedmkt:
+    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+    script: "./fedmkt.py"
+    conf: "./fedmkt_config.yaml"
+    peft_path_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory"  
+    tasks:
+      - "sciq" 
+  gpt2_zero_shot:
+    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+    tasks:
+      - "sciq" 
