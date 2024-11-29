@@ -82,8 +82,13 @@ data:
     namespace: experiment
     name: arc_easy
 
-# 模型路径
-pretrained_model_path: "Qwen" # 模型放置的实际路径
+# 模型配置
+model:
+  pretrained_model_name_or_path: "Qwen1.5-0.5B" # 模型放置的实际路径
+
+data_collator:
+  tokenizer_name_or_path: "Qwen1.5-0.5B" # 模型的tokenizer放置的实际路径
+
 ~~~
 
 ##### 3. 运行

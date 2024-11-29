@@ -125,8 +125,35 @@ data:
     namespace: experiment
     name: slm_train
 
-# 模型路径
-pretrained_model_path: "Sheared-LLaMa-1.3B" # 模型放置的实际路径
+# 配置路径
+# LLM Configuration
+llm:
+  pretrained_path: "Sheared-LLaMa-1.3B" # 模型放置的实际路径
+  embedding_model_path: "opt-1.3b" # 模型放置的实际路径
+
+  dataset:
+    tokenizer_name_or_path: "Sheared-LLaMa-1.3B" # 模型放置的实际路径
+# SLM Configuration
+slm:
+  pretrained_path: "gpt2" # 模型放置的实际路径
+  data_path: "train.json" # 数据放置的实际路径
+
+  tokenizer:
+    tokenizer_name_or_path: "gpt2" # 模型放置的实际路径
+
+  dataset:
+    tokenizer_name_or_path: "gpt2" # 模型放置的实际路径
+    need_preprocess: true
+    dataset_name: "yelp_review"
+    data_part: "train"
+    load_from: "json"
+    select_num: 2000
+    few_shot_num_per_label: 1
+
+  data_collator:
+    label_pad_token_id: 50256
+    tokenizer_name_or_path: "gpt2" # 模型放置的实际路径
+    pad_token_id: 50256
 ~~~
 
 ##### 3. 运行

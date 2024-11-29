@@ -85,8 +85,13 @@ data:
     namespace: experiment
     name: arc_challenge
 
-# 模型路径
-pretrained_model_path: "Sheared-LLaMa-1.3B" # 模型放置的实际路径
+# 配置路径
+paths:
+  process_data_output_dir: "examples/data/arc_e" # 数据放置的实际路径
+  llm_pretrained_path: "Sheared-LLaMa-1.3B" # 模型放置的实际路径
+  slm_0_pretrained_path: "opt-1.3b" # 模型放置的实际路径
+  slm_1_pretrained_path: "gpt2" # 模型放置的实际路径
+  vocab_mapping_directory: "vocab_mapping_datas" # vocab_mapping数据放置的实际路径
 ~~~
 
 ##### 3. 运行
