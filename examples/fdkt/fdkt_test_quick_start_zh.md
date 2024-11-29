@@ -126,7 +126,7 @@ data:
     name: slm_train
 
 # 模型路径
-pretrained_model_path: "Qwen" # 模型放置的实际路径
+pretrained_model_path: "Sheared-LLaMa-1.3B" # 模型放置的实际路径
 ~~~
 
 ##### 3. 运行
@@ -140,7 +140,7 @@ source fate/bin/init_env.sh
 fate_test llmsuite -i fate_llm/examples/fdkt/ --yes
 ~~~
 
-**注意：** fdkt暂不支持数据评估
+**注意：** fdkt暂不支持数据评估，如您环境是torch=1.13.1，需升级至torch=2.3.1
 ##### 4. 问题定位
 
 ​	任务运行失败，报错，会在当前执行命令的目录下生成一个logs目录，找到对应的任务，检查stdout，或者exception.log检查报错原因。
