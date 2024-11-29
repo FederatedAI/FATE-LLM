@@ -157,7 +157,17 @@ slm:
 ~~~
 
 ##### 3. 运行
+~~~
+# 创建 vllm 环境
+python -m venv vllm_venv
+source vllm_venv/bin/activate
+pip install vllm==0.4.3
+pip install numpy==1.26.4 # numpy >= 2.0.0 will raise error, so reinstall numpy<2.0.0
 
+# Sheared-LLaMa-1.3B为本地llm模型保存路径
+export CUDA_VISIBLE_DEVICES=1,2
+nohup python -m vllm.entrypoints.openai.api_server --host 127.0.0.1 --port 9999 --model Sheared-LLaMa-1.3B --dtype=half --enforce-eager --api-key demo --device cuda -tp 2 &
+~~~
 ~~~
 # 环境准备
 cd /fate/
