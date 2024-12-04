@@ -19,24 +19,11 @@ import yaml
 import typing
 from pathlib import Path
 
-import re
-import typing
-from pathlib import Path
-
-import prettytable
-from ruamel import yaml
-
-from fate_test import _config
-from fate_test._config import Config
-from fate_test._io import echo
-from fate_test.utils import TxtStyle
-
-
 class LlmJob(object):
     def __init__(self, job_name: str, script_path: Path=None, conf_path: Path=None, model_task_name: str=None,
                  pretrained_model_path: Path=None, peft_path: Path=None, model_weights: Path=None,
                  eval_conf_path: Path=None, loader: str=None, loader_conf_path: Path=None,
-                 tasks: typing.List[str]=None, include_path: Path=None, peft_path_format: str=None, model_weights_format: str=None):
+                 tasks: typing.List[str]=None, include_path: Path=None, peft_path_format: str=None, model_weights_format: str=None,requires_untar: str=None):
         self.job_name = job_name
         self.script_path = script_path
         self.conf_path = conf_path
@@ -52,7 +39,7 @@ class LlmJob(object):
         self.peft_path_format = peft_path_format
         self.model_weights_format = model_weights_format
         self.model_weights = model_weights
-
+        self.requires_untar = requires_untar
 
 class LlmPair(object):
     def __init__(
@@ -110,16 +97,28 @@ class LlmSuite(object):
                 model_weights = job_configs.get("weights", None)
                 if model_weights and not os.path.isabs(model_weights):
                     model_weights = path.parent.joinpath(model_weights).resolve()
+
+                requires_untar = job_configs.get("untar", None)
+                if requires_untar and not os.path.isabs(requires_untar):
+                    requires_untar = path.parent.joinpath(requires_untar).resolve()
                     
                 eval_conf_path = job_configs.get("eval_conf", None)
                 if eval_conf_path and not os.path.isabs(eval_conf_path):
                     eval_conf_path = path.parent.joinpath(eval_conf_path).resolve()
 
                 loader = job_configs.get("loader", None)
-                if job_configs.get("loader_conf"):
-                    loader_conf_path = path.parent.joinpath(job_configs["loader_conf"]).resolve()
+                # loader_conf
+                loader_conf = job_configs.get("loader_conf", None)
+                if isinstance(loader_conf, dict):
+                    loader_conf_data = loader_conf
+                    loader_conf_path = None  
+                elif isinstance(loader_conf, str):
+                    loader_conf_path = path.parent.joinpath(loader_conf).resolve()
+                    loader_conf_data = None  
                 else:
-                    loader_conf_path = ""
+                    loader_conf_data = None
+                    loader_conf_path = None
+
                 tasks = job_configs.get("tasks", [])
                 include_path = job_configs.get("include_path", "")
                 if include_path and not os.path.isabs(include_path):
@@ -128,16 +127,19 @@ class LlmSuite(object):
                 peft_path_format = job_configs.get("peft_path_format",None)
 
                 model_weights_format = job_configs.get("model_weights_format",None)
+
+                requires_untar = job_configs.get("requires_untar",None)
                 
                 jobs.append(
                     LlmJob(
                         job_name=job_name, script_path=script_path, conf_path=conf_path,
                         model_task_name=model_task_name,
                         pretrained_model_path=pretrained_model_path, peft_path=peft_path, eval_conf_path=eval_conf_path,
-                        loader=loader, loader_conf_path=loader_conf_path, tasks=tasks, include_path=include_path,
+                        loader=loader, loader_conf_path=loader_conf_data, tasks=tasks, include_path=include_path,
                         peft_path_format=peft_path_format,
                         model_weights_format=model_weights_format,
-                        model_weights=model_weights
+                        model_weights=model_weights,
+                        requires_untar=requires_untar
                     )
                 )
 
@@ -148,68 +150,6 @@ class LlmSuite(object):
             )
         suite = LlmSuite(pairs=pairs, path=path)
         return suite
-
-    @staticmethod
-    def style_table(txt):
-        colored_txt = txt.replace("success", f"{TxtStyle.TRUE_VAL}success{TxtStyle.END}")
-        colored_txt = colored_txt.replace("failed", f"{TxtStyle.FALSE_VAL}failed{TxtStyle.END}")
-        colored_txt = colored_txt.replace("not submitted", f"{TxtStyle.FALSE_VAL}not submitted{TxtStyle.END}")
-        # only color decimal values ends with s
-        pattern = r'\b\d+\.\d+s\b'
-        colored_txt = re.sub(pattern, f"{TxtStyle.DATA_FIELD_VAL}\\g<0>{TxtStyle.END}", colored_txt)
-        # color 'fit' and 'predict'
-        pattern = r'\b(predict|fit)\b'
-        colored_txt = re.sub(pattern, f"{TxtStyle.FIELD_VAL}\\g<0>{TxtStyle.END}", colored_txt)
-        return colored_txt
-
-    def pretty_final_summary(self, time_consuming, suite_file=None):
-        """table = prettytable.PrettyTable(
-            ["job_name", "job_id", "status", "time_consuming", "exception_id", "rest_dependency"]
-        )"""
-        table = prettytable.PrettyTable()
-        table.set_style(prettytable.ORGMODE)
-        # field_names = ["job_name", "job_id", "status", "time_consuming", "exception_id", "rest_dependency"]
-        field_names = ["job_name", "job_id", "status", "time_consuming", "exception_id"]
-        print(f"field_names：{field_names}")
-        table.field_names = field_names
-        print(f"field_names：{field_names}")
-
-        for status in self.get_final_status().values():
-            if isinstance(status.status, str) and status.status != "success":
-                status.suite_file = suite_file
-                _config.non_success_jobs.append(status)
-            if isinstance(status.status, list):
-                for job_status in status.status:
-                    if job_status.status != "success":
-                        status.suite_file = suite_file
-                        _config.non_success_jobs.append(status)
-            if status.exception_id != "-":
-                exception_id_txt = f"{TxtStyle.FALSE_VAL}{status.exception_id}{TxtStyle.END}"
-            else:
-                exception_id_txt = f"{TxtStyle.FIELD_VAL}{status.exception_id}{TxtStyle.END}"
-            if status.job_id != '-':
-                job_id_event = ",\n".join([f"{i}: {j}" for i, j in zip(status.job_id, status.event)])
-                if isinstance(status.status, list):
-                    status_txt = ",\n".join([str(s.status) for s in status.status])
-                    time_elapsed_txt = ",\n".join([f"{t}s" for t in status.time_elapsed])
-                else:
-                    status_txt = str(status.status)
-                    time_elapsed_txt = f"{status.time_elapsed}"
-            else:
-                job_id_event = '-'
-                status_txt = str(status.status)
-                time_elapsed_txt = "-"
-            table.add_row([
-                f"{TxtStyle.FIELD_VAL}{status.name}{TxtStyle.END}",
-                self.style_table(job_id_event),
-                self.style_table(status_txt),
-                self.style_table(time_elapsed_txt),
-                f"{TxtStyle.FIELD_VAL}{exception_id_txt}{TxtStyle.END}"
-                # f"{TxtStyle.FIELD_VAL}{','.join(status.rest_dependency)}{TxtStyle.END}",
-            ]
-            )
-
-        return table.get_string(title=f"{TxtStyle.TITLE}Testsuite Summary: {self.suite_name}{TxtStyle.END}")
     
     def update_status(
             self, pair_name, job_name, job_id=None, status=None, exception_id=None, time_elapsed=None, event=None

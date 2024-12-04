@@ -100,14 +100,16 @@ class MyCustomLM(HFLM):
         self._world_size = world_size
         self.batch_size_per_gpu = 4
 
-        self._config = model_path  # config
+        self._config = model_path  
         self._max_length = self._config.max_length if hasattr(self._config, 'max_length') else 1024
         self._logits_cache = None
 
     def loglikelihood_rolling(self, requests: List[Tuple[str, str]]) -> List[Tuple[float, bool]]:
+        
         return [(0.0, True) for _ in requests]
 
     def generate_until(self, requests: List[Tuple[str, str]]) -> List[str]:
+        
         return ["Generated text" for _ in requests]
 
 def run_job_eval(job, eval_conf):
@@ -132,27 +134,24 @@ def run_job_eval(job, eval_conf):
             result = evaluate(model=model, tasks=job.tasks, include_path=job.include_path, **job_eval_conf)
         if job.model_weights_format:
             if job.loader == 'ot':
-                loaded_model = load_by_loader_OT(trained_weights_path=job.model_weights_format,model_path=job.pretrained_model_path)
+                loaded_model = load_by_loader_OT(trained_weights=job.model_weights_format, loader_conf=job.loader_conf_path, model_path=job.pretrained_model_path)
             if job.loader == 'pdss':
-                loaded_model = load_by_loader_PDSS(trained_weights_path=job.model_weights_format,model_path=job.pretrained_model_path)
-            
-            # loaded_model  
+                loaded_model = load_by_loader_PDSS(trained_weights=job.model_weights_format,model_path=job.pretrained_model_path)
+             
             loaded_model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))     
-            # MyCustomLM
+            
             gpt2_lm = MyCustomLM(pretrained=loaded_model,model_path=job.pretrained_model_path)     
-            # llm_evaluator
+             
             llm_evaluator.init_tasks()
+            #result = llm_evaluator.evaluate(model=gpt2_lm, tasks="sciq")
             result = llm_evaluator.evaluate(model=gpt2_lm, tasks=job.tasks)
 
 
     else:
         # feed in pretrained & peft path
         job_eval_conf["model_args"]["pretrained"] = job.pretrained_model_path
-        echo.echo(f"DEBUG: job_eval_conf = {job_eval_conf}")
         if job.peft_path:
             job_eval_conf["model_args"]["peft"] = job.peft_path
-            echo.echo(f"DEBUG: job_eval_conf = {job_eval_conf}")
-            echo.echo(f"DEBUG: job.include_path = {job.include_path}")
         result = evaluate(tasks=job.tasks, include_path=job.include_path, **job_eval_conf)
     return result
 

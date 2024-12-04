@@ -19,7 +19,9 @@ from transformers import AutoModel, AutoTokenizer
 from transformers import AutoModelForCausalLM
 from lm_eval.models.huggingface import HFLM
 from fate_llm.model_zoo.offsite_tuning.gpt2 import GPT2LMHeadMainModel,GPT2LMHeadSubModel
+from ..utils._io import echo
 import torch
+import importlib
 
 def load_model_from_path(model_path, peft_path=None, peft_config=None, model_args=None):
     model_args = model_args or {}
@@ -51,32 +53,45 @@ def load_by_loader(loader_name=None, loader_conf_path=None, peft_path=None):
     #@todo: find loader fn & return loaded model
     pass
 
-def load_by_loader_OT(trained_weights_path=None,model_path=None):
-    # model_weights_path
-    model_weights_path = trained_weights_path
-    
-    # model
-    model = GPT2LMHeadSubModel(
-        model_name_or_path=model_path, 
-        emulator_layer_num=11, 
-        adapter_top_layer_num=2, 
-        adapter_bottom_layer_num=2
-    )
+def load_by_loader_OT(trained_weights=None, loader_conf=None, model_path=None):
 
-    # load model_weights_path
-    state_dict = torch.load(model_weights_path, map_location='cuda')
+    if not isinstance(loader_conf, dict):
+        raise ValueError("loader_conf must be a dictionary")
+    
+    module_name = loader_conf.get('module_name')
+    item_name = loader_conf.get('item_name')
+
+    if not module_name or not item_name:
+        raise ValueError("loader_conf must contain 'module_name' and 'item_name' keys")
+    
+    module_name = 'fate_llm.model_zoo.' + module_name
+    
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as e:
+        raise ImportError(f"Failed to import module {module_name}: {e}")
+    
+    try:
+        ModelClass = getattr(module, item_name)
+    except AttributeError as e:
+        raise AttributeError(f"Module {module_name} does not have a class named {item_name}: {e}")
+
+    model_init_params = {key: value for key, value in loader_conf.items() if key not in ['module_name', 'item_name']}
+    model_init_params['model_name_or_path'] = model_path
+
+    model = ModelClass(**model_init_params)
+
+    state_dict = torch.load(trained_weights, map_location='cuda')
     model.load_state_dict(state_dict)
 
     return model
+    
+def load_by_loader_PDSS(trained_weights=None, model_path=None):
 
-def load_by_loader_PDSS(trained_weights_path=None,model_path=None):
-    #  model_weights_path
-    model_weights_path = trained_weights_path
+    model_weights_path = trained_weights
 
-    # model
     model = AutoModelForCausalLM.from_pretrained(model_path)
 
-    # load model_weights_path
     state_dict = torch.load(model_weights_path, map_location='cuda')
     model.load_state_dict(state_dict)
 
