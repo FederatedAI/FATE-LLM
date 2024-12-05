@@ -2,7 +2,7 @@
 
 ##### 1. 数据准备
 
-​	用的是一个广告测试生成的数据集，可以从以下链接下载数据集并将其放置在fate/examples/data文件夹中， 同时 fate_llm/python/fate_llm/evaluate/tasks/advertise_gen下也要放置数据train.json, dev.json 
+​	用的是一个广告测试生成的数据集，可以从以下链接下载数据集并将其放置在fate_llm/examples/data文件夹中， 同时 $fate_base/examples/evaluate/tasks/advertise_gen下也要放置数据train.json, dev.json 
 ​	[data_link_1](https://drive.google.com/file/d/13_vf0xRTQsyneRKdD1bZIr93vBGOczrk/view)
 
 ##### 2. 配置文件修改

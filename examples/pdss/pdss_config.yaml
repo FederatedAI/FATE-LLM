@@ -8,27 +8,27 @@ data:
     
 # Model configuration
 model:
-  pretrained_model_name_or_path: "Qwen1.5-0.5B" # Please add your model path
+  pretrained_model_name_or_path: "Qwen-14B" # Please add your model path
 
 # Data Processor Configuration
 data_collator:
-  tokenizer_name_or_path: "Qwen1.5-0.5B" # Please add your model path
+  tokenizer_name_or_path: "Qwen-14B" # Please add your model path
 
 # Inference initialization configuration
 inference:
   client:
     api_url: "http://127.0.0.1:9999/v1"
-    api_model_name: "Qwen1.5-0.5B" # Please add your model path
+    api_model_name: "Qwen-14B" # Please add your model path
     api_key: "demo"
     inferdpt_kit_path: "/examples/pdss" # Please add your inferdpt_kit_path
   server:
     api_url: "http://127.0.0.1:9999/v1"
-    api_model_name: "Qwen1.5-0.5B" # Please add your model path
+    api_model_name: "Qwen-14B" # Please add your model path
     api_key: "demo"
 
 # Dataset configuration
 dataset:
-  tokenizer_path: "Qwen1.5-0.5B" # Please add your model path
+  tokenizer_path: "Qwen-14B" # Please add your model path
   predict_input_template: |
     Predict:
     Question:{{question}}

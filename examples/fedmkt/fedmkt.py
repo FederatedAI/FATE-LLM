@@ -22,12 +22,12 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     arbiter = parties.arbiter[0]  # replace with actual arbiter party ID
     
     process_data_output_dir = param['paths']['process_data_output_dir']
-    pretrained_model_path = param['paths']['llm_pretrained_path']
+    llm_pretrained_path = param['paths']['llm_pretrained_path']
     slm_0_pretrained_path = param['paths']['slm_0_pretrained_path']
     slm_1_pretrained_path = param['paths']['slm_1_pretrained_path']
     llm_slm_pairs = [
-        (pretrained_model_path, slm_0_pretrained_path),
-        (pretrained_model_path, slm_1_pretrained_path)
+        (llm_pretrained_path, slm_0_pretrained_path),
+        (llm_pretrained_path, slm_1_pretrained_path)
     ]
     vocab_mapping_directory = param['paths']['vocab_mapping_directory']
 
@@ -62,7 +62,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         llm_model = LLMModelLoader(
             "pellm.llama",
             "LLaMa",
-            pretrained_path=pretrained_model_path,
+            pretrained_path=llm_pretrained_path,
             peft_type="LoraConfig",
             peft_config=lora_config.to_dict(),
             torch_dtype="bfloat16"
@@ -71,7 +71,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         pub_dataset = LLMDatasetLoader(
             "qa_dataset",
             "QaDataset",
-            tokenizer_name_or_path=pretrained_model_path,
+            tokenizer_name_or_path=llm_pretrained_path,
             need_preprocess=True,
             dataset_name="arc_challenge",
             data_part="common",
@@ -94,7 +94,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
             weight_decay=param['training']['llm']['weight_decay'],
             max_grad_norm=param['training']['llm']['max_grad_norm'],
             use_cpu=param['training']['llm']['use_cpu'],
-            vocab_size=AutoConfig.from_pretrained(pretrained_model_path).vocab_size,
+            vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
         )
 
         fed_args = FedAVGArguments(
@@ -105,7 +105,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         tokenizer = LLMDataFuncLoader(
             "tokenizers.cust_tokenizer",
             "get_tokenizer",
-            tokenizer_name_or_path=pretrained_model_path
+            tokenizer_name_or_path=llm_pretrained_path
         )
 
         slm_tokenizers = [
@@ -200,7 +200,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         llm_tokenizer = LLMDataFuncLoader(
             "tokenizers.cust_tokenizer", 
             "get_tokenizer", 
-            tokenizer_name_or_path=pretrained_model_path
+            tokenizer_name_or_path=llm_pretrained_path
         )
 
         data_collator = LLMDataFuncLoader(
@@ -231,7 +231,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
         namespace=param['data']['guest']['namespace'],
         name=param['data']['guest']['name']
     )
-    reader_0.hosts[[0, 1, 2]].task_parameters(
+    reader_0.hosts[0].task_parameters(
         namespace=param['data']['host']['namespace'],
         name=param['data']['host']['name']
     )
@@ -265,7 +265,7 @@ def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace="
     
     pipeline.compile()
     pipeline.fit()
-    return pretrained_model_path
+    return llm_pretrained_path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("LLMSUITE PIPELINE JOB")

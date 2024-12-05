@@ -19,7 +19,7 @@ client:
 # LLM Configuration
 llm:
   pretrained_path: "Sheared-LLaMa-1.3B" # Please add your model path
-  embedding_model_path: "opt-1.3b" # Please add your model path
+  embedding_model_path: "all-mpnet-base-v2" # Please add your model path
 
   dataset:
     tokenizer_name_or_path: "Sheared-LLaMa-1.3B" # Please add your model path

@@ -71,7 +71,7 @@ training:
 
 # Paths configuration
 paths:
-  process_data_output_dir: "examples/data/arc_e" # Please add your datasets path
+  process_data_output_dir: "examples/data/arc_challenge" # Please add your datasets path
   llm_pretrained_path: "Sheared-LLaMa-1.3B" # Please add your mdoel path
   slm_0_pretrained_path: "opt-1.3b" # Please add your mdoel path
   slm_1_pretrained_path: "gpt2" # Please add your mdoel path

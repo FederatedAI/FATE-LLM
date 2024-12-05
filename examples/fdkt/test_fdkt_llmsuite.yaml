@@ -7,7 +7,7 @@ data:
     table_name: slm_train
     namespace: experiment
     role: host_0
-fdkt_lora:
+fdkt:
   fdkt_lora:
     pretrained: "Sheared-LLaMa-1.3B" # Please add your model path
     script: "./fdkt.py"

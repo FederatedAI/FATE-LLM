@@ -2,7 +2,7 @@
 
 ##### 1. 数据准备
 
-​	准备QA数据集，本样例中使用sciq数据集。可以使用qa_dataset.py中提供的工具对sciq数据集进行标记，并保存标记结果。记住将save_path修改为自己的路径。数据处理脚本如下
+​	准备QA数据集，本样例中使用sciq数据集。可以使用qa_dataset.py中提供的工具对sciq数据集进行标记，并保存分词结果。记住将save_path修改为自己的路径。数据处理脚本如下
 
 ~~~
 # sciq数据处理脚本，稍微修改即可执行，执行需在fate环境下执行
@@ -90,7 +90,7 @@ pretrained_model_path: "gpt2" # 模型放置的实际路径
 
 ~~~
 # 环境准备
-cd /fate/
+cd $fate_base
 source /fate/bin/init_env.sh
 
 # 命令执行

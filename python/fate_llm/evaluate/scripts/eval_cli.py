@@ -76,7 +76,7 @@ def run_evaluate(ctx, include, eval_config, result_output, **kwargs):
     # run_suite_eval(suite, eval_config_dict, result_output)
     run_suite_eval(suite, eval_config, result_output)
 
-class MyCustomLM(HFLM):
+class CustomLM(HFLM):
     def __init__(self, pretrained: torch.nn.Module, 
                  model_path: str, 
                  tokenizer: Optional[Union[str, transformers.PreTrainedTokenizer, transformers.PreTrainedTokenizerFast]] = None, 
@@ -140,11 +140,11 @@ def run_job_eval(job, eval_conf):
              
             loaded_model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))     
             
-            gpt2_lm = MyCustomLM(pretrained=loaded_model,model_path=job.pretrained_model_path)     
+            Custom_lm = CustomLM(pretrained=loaded_model,model_path=job.pretrained_model_path)     
              
             llm_evaluator.init_tasks()
             #result = llm_evaluator.evaluate(model=gpt2_lm, tasks="sciq")
-            result = llm_evaluator.evaluate(model=gpt2_lm, tasks=job.tasks)
+            result = llm_evaluator.evaluate(model=Custom_lm, tasks=job.tasks)
 
 
     else:

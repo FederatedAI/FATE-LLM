@@ -3,11 +3,11 @@
 ##### 1. 数据准备
 
 ​数据集：ARC-Challenge
-ARC-Challenge 是一个包含 7,787 个真正的小学水平多项选择科学问题的数据集，旨在鼓励高级问答研究。
+是一个真实的小学级别的多选题的科学问题数据集，目的是激励在高级问题回答领域的研究。
 
 您可以参考以下链接了解有关 [ARC-Challenge](https://huggingface.co/datasets/allenai/ai2_arc) 的更多详细信息
 
-从 huggingface 下载 ARC-Challenge 数据集并将其分成五个部分，部分“通用”用于公共数据集，其他部分用于 slms（opt2、gpt2、llama、opt）的训练。
+从 huggingface 下载 ARC-Challenge 数据集并将其分成五个部分，部分“common”用于公共数据集，其他部分用于 slms（opt2、gpt2、llama、opt）的训练。
 
 ~~~
 # ARC-Challenge数据处理脚本，稍微修改即可执行，执行需在fate环境下执行
@@ -98,7 +98,7 @@ paths:
 
 ~~~
 # 环境准备
-cd /fate/
+cd $fate_base
 source fate/bin/init_env.sh
 
 # 命令执行

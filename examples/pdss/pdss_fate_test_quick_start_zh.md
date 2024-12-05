@@ -2,7 +2,7 @@
 
 ##### 1. 数据准备
 
-​	准备QA数据集，本样例中使用arc_easy数据集。可以使用qa_dataset.py中提供的工具对arc_easy数据集进行标记，并保存标记结果。记住将save_path修改为自己的路径。数据处理脚本如下
+​	准备QA数据集，本样例中使用arc_easy数据集。可以使用qa_dataset.py中提供的工具对arc_easy数据集进行标记，并保存分词结果。记住将save_path修改为自己的路径。数据处理脚本如下
 
 ~~~
 # arc_easy数据处理脚本，稍微修改即可执行，执行需在fate环境下执行
@@ -14,7 +14,7 @@ dataset.save_to_disk('path_to_save/arc_easy')
 from fate_llm.dataset.pdss_dataset import PrefixDataset
 
 pds = PrefixDataset(
-        tokenizer_path='/data/models/Qwen1.5-0.5B/',
+        tokenizer_path='/data/models/Qwen-14B/',
         predict_input_template="""Predict:
 Question:{{question}}
 Choices:{{choices.text}}
@@ -65,7 +65,7 @@ pdss_lora_vs_zero_shot:
     tasks:
       - "arc_easy"
   bloom_zero_shot:
-    pretrained: "Qwen"   # 模型放置的实际路径
+    pretrained: "Qwen-14B"   # 模型放置的实际路径
     tasks:
       - "arc_easy"
 ~~~
@@ -84,20 +84,20 @@ data:
 
 # 模型配置
 model:
-  pretrained_model_name_or_path: "Qwen1.5-0.5B" # 模型放置的实际路径
+  pretrained_model_name_or_path: "Qwen-14B" # 模型放置的实际路径
 
 data_collator:
-  tokenizer_name_or_path: "Qwen1.5-0.5B" # 模型的tokenizer放置的实际路径
+  tokenizer_name_or_path: "Qwen-14B" # 模型的tokenizer放置的实际路径
 
 inference:
   client:
     api_url: "http://127.0.0.1:9999/v1"
-    api_model_name: "Qwen1.5-0.5B" # 模型放置的实际路径
+    api_model_name: "Qwen-14B" # 模型放置的实际路径
     api_key: "demo"
     inferdpt_kit_path: "/examples/pdss" # inferdpt_kit_path数据放置的实际路径际路径
   server:
     api_url: "http://127.0.0.1:9999/v1"
-    api_model_name: "Qwen1.5-0.5B" # 模型放置的实际路径
+    api_model_name: "Qwen-14B" # 模型放置的实际路径
     api_key: "demo"
 
 ~~~
@@ -117,7 +117,7 @@ nohup python -m vllm.entrypoints.openai.api_server --host 127.0.0.1 --port 9999 
 ~~~
 ~~~
 # 环境准备
-cd /fate/
+cd $fate_base
 source fate/bin/init_env.sh
 
 # 命令执行
