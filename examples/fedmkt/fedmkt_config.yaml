@@ -79,11 +79,9 @@ paths:
   slm_to_llm_vocab_mapping_paths:
     - "opt_to_llama.json"
     - "gpt2_to_llama.json"
-    - "llama_small_to_llama.json"
   llm_to_slm_vocab_mapping_paths:
     - "llama_to_opt.json"
     - "llama_to_gpt2.json"
-    - "llama_to_llama_small"
 
 # Models configuration
 models:

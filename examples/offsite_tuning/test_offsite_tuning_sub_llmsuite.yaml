@@ -1,15 +1,15 @@
 data:
-  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/sciq_t 
+  - file: /examples/pellm/sciq_t # Please add your datasets path
     table_name: sciq
     namespace: experiment
     role: guest_0
-  - file: /data/projects/fate_llm_22/fate/fate/examples/pellm/sciq_t
+  - file: /examples/pellm/sciq_t # Please add your datasets path
     table_name: sciq
     namespace: experiment
     role: host_0
 offsite_tuning_lora_vs_zero_shot:
   gpt2_ot:
-    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+    pretrained: "gpt2" # Please add your model path
     script: "./offsite_tuning.py"
     conf: "./offsite_tuning_config.yaml"
     loader : "ot"
@@ -23,7 +23,7 @@ offsite_tuning_lora_vs_zero_shot:
     tasks:
       - "sciq"
   gpt2_zero_shot:
-    pretrained: "/data/projects/fate_llm_22/fate/data/cephfs/llm/models/gpt2"
+    pretrained: "gpt2" # Please add your model path
     tasks:
       - "sciq" 
 
