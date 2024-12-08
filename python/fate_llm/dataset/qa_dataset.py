@@ -283,6 +283,7 @@ class QaDataset(Dataset):
         self.dataset_name = dataset_name
         self.data_part = data_part
         self.seq_max_len = seq_max_len
+        self.return_with_idx = False
         if 'llama' in tokenizer_name_or_path.lower():
             self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path, unk_token="<unk>", bos_token="<s>",
                                                            eos_token="</s>", add_eos_token=True)
@@ -313,8 +314,20 @@ class QaDataset(Dataset):
             else:
                 self.ds = self.ds.select(range(self.select_num))
 
+    def set_return_with_idx(self):
+        self.return_with_idx = True
+
+    def reset_return_with_idx(self):
+        self.return_with_idx = False
+
     def __len__(self):
         return len(self.ds)
 
     def __getitem__(self, idx):
-        return self.ds[idx]
+        if self.return_with_index:
+            return {
+                "idx": idx,
+                "inputs": self.ds[idx]
+            }
+        else:
+            return self.ds[idx]
