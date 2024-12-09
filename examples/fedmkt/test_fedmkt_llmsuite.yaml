@@ -1,0 +1,21 @@
+data:
+  - file: examples/data/arc_c # Please add your datasets path
+    table_name: arc_challenge
+    namespace: experiment
+    role: guest_0
+  - file: examples/data/arc_c # Please add your datasets path
+    table_name: arc_challenge
+    namespace: experiment
+    role: host_0
+fedmkt_lora_vs_zero_shot:
+  gpt2_fedmkt:
+    pretrained: "gpt2" # Please add your model path
+    script: "./fedmkt.py"
+    conf: "./fedmkt_config.yaml"
+    peft_path_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory"  
+    tasks:
+      - "arc_challenge" 
+  gpt2_zero_shot:
+    pretrained: "gpt2" # Please add your model path
+    tasks:
+      - "arc_challenge" 

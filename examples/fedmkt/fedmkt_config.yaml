@@ -1,3 +1,11 @@
+# Data configuration
+data:
+  guest:
+    namespace: experiment
+    name: arc_challenge
+  host:
+    namespace: experiment
+    name: arc_challenge
 # fedmkt_config.yaml
 
 # Configuration for Lora
@@ -63,35 +71,23 @@ training:
 
 # Paths configuration
 paths:
-  process_data_output_dir: ""
-  llm_pretrained_path: "Llama-2-7b-hf"
-  slm_pretrained_paths:
-    - "opt-1.3b"
-    - "gpt2"
-  vocab_mapping_directory: ""
+  process_data_output_dir: "examples/data/arc_challenge" # Please add your datasets path
+  llm_pretrained_path: "Sheared-LLaMa-1.3B" # Please add your mdoel path
+  slm_0_pretrained_path: "opt-1.3b" # Please add your mdoel path
+  slm_1_pretrained_path: "gpt2" # Please add your mdoel path
+  vocab_mapping_directory: "vocab_mapping_datas" # Please add your vocab_mapping datasets path
   slm_to_llm_vocab_mapping_paths:
     - "opt_to_llama.json"
     - "gpt2_to_llama.json"
-    - "llama_small_to_llama.json"
   llm_to_slm_vocab_mapping_paths:
     - "llama_to_opt.json"
     - "llama_to_gpt2.json"
-    - "llama_to_llama_small"
 
 # Models configuration
 models:
   slm_models:
     - ["pellm.opt", "OPT"]
     - ["pellm.gpt2", "GPT2CLM"]
-
-# Data configuration
-data:
-  guest:
-    namespace: "experiment"
-    name: "arc_challenge"
-  host:
-    namespace: "experiment"
-    name: "arc_challenge"
 
 # Example: Additional custom configuration
 custom_config:

@@ -5,74 +5,78 @@ from fate_client.pipeline import FateFlowPipeline
 from fate_client.pipeline.components.fate.homo_nn import HomoNN, get_conf_of_ot_runner
 from fate_client.pipeline.components.fate.nn.algo_params import Seq2SeqTrainingArguments, FedAVGArguments
 from fate_client.pipeline.components.fate.nn.loader import LLMModelLoader, LLMDatasetLoader, LLMDataFuncLoader
-from fate_client.pipeline.components.fate.nn.torch.base import Sequential
 from fate_client.pipeline.components.fate.nn.torch import nn
+from typing import Union, Dict
 
-def load_params(file_path):
-    """Load and parse the YAML params file."""
-    with open(file_path, 'r') as f:
-        params = yaml.safe_load(f)
-    return params
-
-def setup_pipeline(params):
-    """Set up the pipeline using the provided parameters."""
-    guest = params['pipeline']['guest']
-    arbiter = params['pipeline']['arbiter']
-    pretrained_model_path = params['paths']['pretrained_model_path']
+def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace=""):
+    if isinstance(config, str):
+        config = test_utils.load_job_config(config)
+    if isinstance(param, str):
+        param = yaml.safe_load(param)
+    # Load the configuration file
+    parties = config.parties  
+    guest = parties.guest[0]
+    arbiter = parties.arbiter[0]  
+    pretrained_model_path = param["pretrained_model_path"]
     
+    # Create pipeline
     pipeline = FateFlowPipeline().set_parties(guest=guest, arbiter=arbiter)
     
-    reader = Reader("reader_0", runtime_parties=dict(guest=guest))
-    reader.guest.task_parameters(
-        namespace=params['pipeline']['namespace'],
-        name=params['pipeline']['name']
+    # Set up the data reader
+    reader_0 = Reader("reader_0", runtime_parties=dict(guest=guest))
+    reader_0.guest.task_parameters(
+        namespace=param["data"]["guest"]["namespace"],
+        name=param["data"]["guest"]["name"]
     )
     
+    # Load the LLM model
     client_model = LLMModelLoader(
-        module_name=params['models']['client']['module_name'],
-        item_name=params['models']['client']['item_name'],
+        module_name='offsite_tuning.gpt2', item_name='GPT2LMHeadSubModel',
         model_name_or_path=pretrained_model_path,
-        emulator_layer_num=params['models']['client']['emulator_layer_num'],
-        adapter_top_layer_num=params['models']['client']['adapter_top_layer_num'],
-        adapter_bottom_layer_num=params['models']['client']['adapter_bottom_layer_num']
+        emulator_layer_num=param["model_config"]["emulator_layer_num"],
+        adapter_top_layer_num=param["model_config"]["adapter_top_layer_num"],
+        adapter_bottom_layer_num=param["model_config"]["adapter_bottom_layer_num"]
     )
     
     server_model = LLMModelLoader(
-        module_name=params['models']['server']['module_name'],
-        item_name=params['models']['server']['item_name'],
+        module_name='offsite_tuning.gpt2', item_name='GPT2LMHeadMainModel',
         model_name_or_path=pretrained_model_path,
-        emulator_layer_num=params['models']['server']['emulator_layer_num'],
-        adapter_top_layer_num=params['models']['server']['adapter_top_layer_num'],
-        adapter_bottom_layer_num=params['models']['server']['adapter_bottom_layer_num']
+        emulator_layer_num=param["model_config"]["emulator_layer_num"],
+        adapter_top_layer_num=param["model_config"]["adapter_top_layer_num"],
+        adapter_bottom_layer_num=param["model_config"]["adapter_bottom_layer_num"]
     )
     
+    # Load the dataset and data processor
     dataset = LLMDatasetLoader(
-        module_name=params['dataset']['module_name'],
-        item_name=params['dataset']['item_name'],
-        tokenizer_name_or_path=params['dataset']['tokenizer_name_or_path'],
-        select_num=params['dataset']['select_num']
-    )
+        module_name='qa_dataset', item_name='QaDataset',
+        tokenizer_name_or_path=pretrained_model_path,
+        select_num=100
+    )  
     
     data_collator = LLMDataFuncLoader(
-        module_name=params['data_collator']['module_name'],
-        item_name=params['data_collator']['item_name'],
-        tokenizer_name_or_path=params['data_collator']['tokenizer_name_or_path']
-    )
+        module_name='data_collator.cust_data_collator',
+        item_name='get_seq2seq_data_collator',
+        tokenizer_name_or_path=pretrained_model_path
+    )    
     
+    # DeepSpeed config
+    ds_config = param["deepspeed_config"]
+    # Training parameter settings
     train_args = Seq2SeqTrainingArguments(
-        per_device_train_batch_size=params['training']['batch_size'],
-        learning_rate=params['training']['learning_rate'],
-        disable_tqdm=False,
-        num_train_epochs=params['training']['num_train_epochs'],
-        logging_steps=params['training']['logging_steps'],
+        per_device_train_batch_size=param["training"]["batch_size"],
+        learning_rate=param["training"]["lr"],
+        disable_tqdm=param["training"]["disable_tqdm"],
+        num_train_epochs=param["training"]["num_train_epochs"],
+        logging_steps=param["training"]["logging_steps"],
         logging_strategy='steps',
-        dataloader_num_workers=4,
+        dataloader_num_workers=param["training"]["dataloader_num_workers"],
         use_cpu=False,
-        deepspeed=params['training']['deepspeed'],  # Add DeepSpeed config here
+        deepspeed=ds_config,
         remove_unused_columns=False,
         fp16=True
     )
     
+    # Set the configuration of the client and server models
     client_conf = get_conf_of_ot_runner(
         model=client_model,
         dataset=dataset,
@@ -91,33 +95,30 @@ def setup_pipeline(params):
         aggregate_model=False
     )
     
-    homo_nn = HomoNN(
+    # Set up the HomoNN component
+    homo_nn_0 = HomoNN(
         'nn_0',
-        train_data=reader.outputs["output_data"],
+        train_data=reader_0.outputs["output_data"],
         runner_module="offsite_tuning_runner",
         runner_class="OTRunner"
-    )
+    ) 
+    homo_nn_0.guest.task_parameters(runner_conf=client_conf)
+    homo_nn_0.arbiter.task_parameters(runner_conf=server_conf)
     
-    homo_nn.guest.task_parameters(runner_conf=client_conf)
-    homo_nn.arbiter.task_parameters(runner_conf=server_conf)
-    
-    # If using Eggroll, you can add this line to submit your job
-    homo_nn.guest.conf.set("launcher_name", "deepspeed")
-    
-    pipeline.add_tasks([reader, homo_nn])
-    pipeline.conf.set("task", dict(engine_run=params['pipeline']['engine_run']))
+    # Using DeepSpeed
+    homo_nn_0.guest.conf.set("launcher_name", "deepspeed")
+    # Build a task pipeline
+    pipeline.add_tasks([reader_0, homo_nn_0])
+    pipeline.conf.set("task", dict(engine_run={"cores": 1}))
     pipeline.compile()
     pipeline.fit()
-
-def main(config_file, param_file):
-    params = load_params(param_file)
-    setup_pipeline(params)
+    return pretrained_model_path
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("LLMSUITE Offsite-tuning JOB")
+    parser = argparse.ArgumentParser("LLMSUITE PIPELINE JOB")
     parser.add_argument("-c", "--config", type=str,
-                        help="Path to config file", default="./config.yaml")
+                        help="config file", default="./config.yaml")
     parser.add_argument("-p", "--param", type=str,
-                        help="Path to parameter file", default="./test_offsite_tuning_llmsuite.yaml")
+                        help="config file for params", default="./offsite_tuning_config.yaml")
     args = parser.parse_args()
     main(args.config, args.param)

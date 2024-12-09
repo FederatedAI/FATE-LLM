@@ -1,0 +1,97 @@
+data:
+  guest:
+    namespace: experiment
+    name: slm_train
+  host:
+    namespace: experiment
+    name: slm_train
+
+
+datasets:
+  slm_data_path: "train.json" # should be absolute path
+
+# Inference initialization configuration
+
+client:
+  api_url: "http://127.0.0.1:9999/v1"
+  api_key: "demo"
+
+# LLM Configuration
+llm:
+  pretrained_path: "Sheared-LLaMa-1.3B" # Please add your model path
+  embedding_model_path: "all-mpnet-base-v2" # Please add your model path
+
+  dataset:
+    tokenizer_name_or_path: "Sheared-LLaMa-1.3B" # Please add your model path
+    need_preprocess: true
+    dataset_name: "yelp_review"
+    data_part: "train.json"
+    load_from: "json"
+    few_shot_num_per_label: 1
+
+  training_args:
+    sample_num_per_cluster: 4
+    filter_prompt_max_length: 16384
+    filter_generation_config:
+      max_tokens: 3000
+    use_cpu: false
+    aug_generation_config:
+      max_tokens: 3000
+      temperature: 0.8
+      top_p: 0.9
+    aug_prompt_num: 200
+
+  inference_inst_conf:
+    module_name: "fate_llm.algo.fdkt.inference_inst"
+    item_name: "api_init"
+    kwargs:
+      api_url: "http://127.0.0.1:9999/v1/"
+      model_name: "Sheared-LLaMa-1.3B"
+      api_key: "demo"
+
+# SLM Configuration
+slm:
+  pretrained_path: "gpt2" # Please add your model path
+  data_path: "train.json" # Please add your datasets path
+
+  model:
+    torch_dtype: "bfloat16"
+
+  tokenizer:
+    tokenizer_name_or_path: "gpt2" # Please add your model path
+    pad_token_id: 50256
+
+  training_args:
+    use_cpu: false
+    device_id: 1
+    num_train_epochs: 1
+    per_device_train_batch_size: 2
+    slm_generation_batch_size: 32
+    seq_num_for_single_category: 200
+    slm_generation_config:
+      max_new_tokens: 256
+      do_sample: true
+      temperature: 1.0
+      top_k: 50
+      top_p: 0.9
+      repetition_penalty: 1.0
+      pad_token_id: 50256
+
+  dataset:
+    tokenizer_name_or_path: "gpt2" # Please add your model path
+    need_preprocess: true
+    dataset_name: "yelp_review"
+    data_part: "train"
+    load_from: "json"
+    select_num: 2000
+    few_shot_num_per_label: 1
+
+  optimizer:
+    type: "Adam"
+    params:
+      lr: 0.01
+
+  data_collator:
+    label_pad_token_id: 50256
+    tokenizer_name_or_path: "gpt2" # Please add your model path
+    pad_token_id: 50256

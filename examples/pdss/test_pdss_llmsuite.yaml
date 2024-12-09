@@ -1,0 +1,24 @@
+data:
+  - file: examples/data/arc_e # Please add your datasets path
+    table_name: arc_easy
+    namespace: experiment
+    role: guest_0
+  - file: examples/data/arc_e # Please add your datasets path
+    table_name: arc_easy
+    namespace: experiment
+    role: host_0
+pdss_qwen_vs_zero_shot:
+  pdss_qwen:
+    pretrained: "Qwen-14B" # Please add your model path
+    script: "./pdss.py"
+    conf: "./pdss_config.yaml"
+    loader: "pdss"
+    model_weights_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory/pytorch_model.bin"
+    tasks:
+      - "arc_easy"
+  Qwen_zero_shot:
+    pretrained: "Qwen-14B" # Please add your model path
+    tasks:
+      - "arc_easy"
+
+

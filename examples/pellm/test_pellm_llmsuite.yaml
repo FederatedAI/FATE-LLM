@@ -1,21 +1,21 @@
 data:
-  - file: examples/data/AdvertiseGen/train.json
+  - file: examples/data/AdvertiseGen/train.json # Please add your datasets path
     table_name: ad
     namespace: experiment
     role: guest_0
-  - file: examples/data/AdvertiseGen/train.json
+  - file: examples/data/AdvertiseGen/train.json # Please add your datasets path
     table_name: ad
     namespace: experiment
     role: host_0
 bloom_lora_vs_zero_shot:
   bloom_lora:
-    pretrained: "bloom-560m"
+    pretrained: "bloom-560m" # Please add your model path
     script: "./test_bloom_lora.py"
     conf: "./bloom_lora_config.yaml"
     peft_path_format: "{{fate_base}}/fate_flow/model/{{job_id}}/guest/{{party_id}}/{{model_task_name}}/0/output/output_model/model_directory"
     tasks:
       - "advertise-gen"
   bloom_zero_shot:
-    pretrained: "bloom-560m"
+    pretrained: "bloom-560m" # Please add your model path
     tasks:
       - "advertise-gen"

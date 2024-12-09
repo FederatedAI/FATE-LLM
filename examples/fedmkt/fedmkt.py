@@ -9,32 +9,44 @@ import argparse
 import yaml
 from typing import Union, Dict
 
-def main(config="./config.yaml", param: Union[Dict, str] = None):
+def main(config="../../config.yaml", param: Union[Dict, str] = None, namespace=""):
     if isinstance(config, str):
-        with open(config, 'r') as f:
-            config = yaml.safe_load(f)
-    
+        config = test_utils.load_job_config(config)
     if isinstance(param, str):
         param = yaml.safe_load(param)
-
-    guest = config['parties']['guest'][0]  # replace with actual guest party ID
-    host = config['parties']['host'][0]    # replace with actual host party ID
-    arbiter = config['parties']['arbiter'][0]  # replace with actual arbiter party ID
+        
+    # load config
+    parties = config.parties
+    guest = parties.guest[0]  # replace with actual guest party ID
+    host = parties.host[0]    # replace with actual host party ID
+    arbiter = parties.arbiter[0]  # replace with actual arbiter party ID
     
-    process_data_output_dir = config['paths']['process_data_output_dir']
-    llm_pretrained_path = config['paths']['llm_pretrained_path']
-    slm_pretrained_paths = config['paths']['slm_pretrained_paths']
-    vocab_mapping_directory = config['paths']['vocab_mapping_directory']
+    process_data_output_dir = param['paths']['process_data_output_dir']
+    llm_pretrained_path = param['paths']['llm_pretrained_path']
+    slm_0_pretrained_path = param['paths']['slm_0_pretrained_path']
+    slm_1_pretrained_path = param['paths']['slm_1_pretrained_path']
+    llm_slm_pairs = [
+        (llm_pretrained_path, slm_0_pretrained_path),
+        (llm_pretrained_path, slm_1_pretrained_path)
+    ]
+    vocab_mapping_directory = param['paths']['vocab_mapping_directory']
 
     slm_to_llm_vocab_mapping_paths = [
-        vocab_mapping_directory + "/" + path for path in config['paths']['slm_to_llm_vocab_mapping_paths']
+        vocab_mapping_directory + "/" + path for path in param['paths']['slm_to_llm_vocab_mapping_paths']
     ]
     llm_to_slm_vocab_mapping_paths = [
-        vocab_mapping_directory + "/" + path for path in config['paths']['llm_to_slm_vocab_mapping_paths']
+        vocab_mapping_directory + "/" + path for path in param['paths']['llm_to_slm_vocab_mapping_paths']
     ]
-    
-    slm_models = config['models']['slm_models']
-    slm_lora_target_modules = config['lora_config']['slm_lora_target_modules']
+    slm_pretrained_paths = [slm_0_pretrained_path, slm_1_pretrained_path]
+    slm_models = param['models']['slm_models']
+    slm_lora_target_modules = [
+        ["q_proj", "v_proj"],
+        ["c_attn"]
+    ]
+    slm_models = [
+        ("pellm.opt", "OPT"),
+        ("pellm.gpt2", "GPT2CLM")
+    ]
     
     def get_llm_conf():
         lora_config = LoraConfig(
@@ -210,20 +222,20 @@ def main(config="./config.yaml", param: Union[Dict, str] = None):
             save_trainable_weights_only=True,
             data_collator=data_collator
         )
-    
+        
     pipeline = FateFlowPipeline().set_parties(guest=guest, arbiter=arbiter, host=host)
     pipeline.bind_local_path(path=process_data_output_dir, namespace="experiment", name="arc_challenge")
     
     reader_0 = Reader("reader_0", runtime_parties=dict(guest=guest, host=host))
     reader_0.guest.task_parameters(
-        namespace=config['data']['guest']['namespace'],
-        name=config['data']['guest']['name']
+        namespace=param['data']['guest']['namespace'],
+        name=param['data']['guest']['name']
     )
-    reader_0.hosts[[0, 1, 2]].task_parameters(
-        namespace=config['data']['host']['namespace'],
-        name=config['data']['host']['name']
+    reader_0.hosts[0].task_parameters(
+        namespace=param['data']['host']['namespace'],
+        name=param['data']['host']['name']
     )
-
+    
     homo_nn_0 = HomoNN(
         'nn_0',
         train_data=reader_0.outputs["output_data"],
@@ -238,7 +250,7 @@ def main(config="./config.yaml", param: Union[Dict, str] = None):
     homo_nn_0.guest.task_parameters(
         runner_conf=get_slm_conf(slm_idx=0)
     )
-    
+
     for idx in range(1):
         homo_nn_0.hosts[idx].task_parameters(
             runner_conf=get_slm_conf(slm_idx=idx + 1)
@@ -253,6 +265,7 @@ def main(config="./config.yaml", param: Union[Dict, str] = None):
     
     pipeline.compile()
     pipeline.fit()
+    return llm_pretrained_path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("LLMSUITE PIPELINE JOB")

@@ -13,6 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import os
+
 from fate_llm.algo.inferdpt.init._init import InferInit
 from fate_llm.inference.api import APICompletionInference
 from fate_llm.algo.inferdpt import inferdpt
@@ -24,15 +26,30 @@ class InferDPTAPIClientInit(InferInit):
 
     api_url = ''
     api_model_name = ''
-    api_key = 'EMPTY'
+    api_key = os.environ.get("FATE_LLM_API_KEY", "")
     inferdpt_kit_path = ''
-    eps = 3.0
+    eps = os.environ.get("FATE_LLM_INFERDPT_EPS", 3.0)
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, api_url=None, api_model_name=None, inferdpt_kit_path=None, api_key=None, eps=None):
         super().__init__(ctx)
         self.ctx = ctx
 
+        if api_url is not None:
+            self.api_url = api_url
+        if api_model_name is not None:
+            self.api_model_name = api_model_name
+        if inferdpt_kit_path is not None:
+            self.inferdpt_kit_path = inferdpt_kit_path
+        if api_key is not None:
+            self.api_key = api_key
+        if eps is not None:
+            self.eps = eps
+
     def get_inst(self)-> InferDPTClient:
+        if self.api_key is None:
+            raise ValueError("Please set the environment variable FATE_LLM_API_KEY for llm querying")
+        if self.api_model_name is None or self.api_url is None:
+            raise ValueError(f"api_model_name={self.api_model_name} and api_url={self.api_url} should not be None")
         inference = APICompletionInference(api_url=self.api_url, model_name=self.api_model_name, api_key=self.api_key)
         kit = InferDPTKit.load_from_path(self.inferdpt_kit_path)
         inferdpt_client = inferdpt.InferDPTClient(self.ctx, kit, inference, epsilon=self.eps)
@@ -43,13 +60,22 @@ class InferDPTAPIServerInit(InferInit):
 
     api_url = ''
     api_model_name = ''
-    api_key = 'EMPTY'
+    api_key = os.environ.get("FATE_LLM_API_KEY", "")
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, api_url, api_model_name,  api_key=None):
         super().__init__(ctx)
         self.ctx = ctx
+        self.api_url = api_url
+        self.api_model_name = api_model_name
+        
+        if api_key is not None:
+            self.api_key = api_key
 
-    def get_inst(self)-> InferDPTServer:
+    def get_inst(self) -> InferDPTServer:
+        if self.api_key is None:
+            raise ValueError("Please set the environment variable FATE_LLM_API_KEY for llm querying")
+        if self.api_model_name is None or self.api_url is None:
+            raise ValueError(f"api_model_name={self.api_model_name} and api_url={self.api_url} should not be None")
         inference = APICompletionInference(api_url=self.api_url, model_name=self.api_model_name, api_key=self.api_key)
         inferdpt_server = inferdpt.InferDPTServer(self.ctx,inference_inst=inference)
         return inferdpt_server

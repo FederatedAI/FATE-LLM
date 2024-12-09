@@ -19,12 +19,11 @@ import yaml
 import typing
 from pathlib import Path
 
-
 class LlmJob(object):
     def __init__(self, job_name: str, script_path: Path=None, conf_path: Path=None, model_task_name: str=None,
-                 pretrained_model_path: Path=None, peft_path: Path=None,
+                 pretrained_model_path: Path=None, peft_path: Path=None, model_weights: Path=None,
                  eval_conf_path: Path=None, loader: str=None, loader_conf_path: Path=None,
-                 tasks: typing.List[str]=None, include_path: Path=None, peft_path_format: str=None):
+                 tasks: typing.List[str]=None, include_path: Path=None, peft_path_format: str=None, model_weights_format: str=None,requires_untar: str=None):
         self.job_name = job_name
         self.script_path = script_path
         self.conf_path = conf_path
@@ -38,7 +37,9 @@ class LlmJob(object):
         self.include_path = include_path
         self.evaluate_only = self.script_path is None
         self.peft_path_format = peft_path_format
-
+        self.model_weights_format = model_weights_format
+        self.model_weights = model_weights
+        self.requires_untar = requires_untar
 
 class LlmPair(object):
     def __init__(
@@ -55,6 +56,7 @@ class LlmSuite(object):
         self.pairs = pairs
         self.path = path
         self.dataset = dataset
+        self.suite_name = Path(self.path).stem
         self._final_status = {}
 
     @staticmethod
@@ -92,31 +94,52 @@ class LlmSuite(object):
                 if peft_path and not os.path.isabs(peft_path):
                     peft_path = path.parent.joinpath(peft_path).resolve()
 
+                model_weights = job_configs.get("weights", None)
+                if model_weights and not os.path.isabs(model_weights):
+                    model_weights = path.parent.joinpath(model_weights).resolve()
+
+                requires_untar = job_configs.get("untar", None)
+                if requires_untar and not os.path.isabs(requires_untar):
+                    requires_untar = path.parent.joinpath(requires_untar).resolve()
+                    
                 eval_conf_path = job_configs.get("eval_conf", None)
                 if eval_conf_path and not os.path.isabs(eval_conf_path):
                     eval_conf_path = path.parent.joinpath(eval_conf_path).resolve()
 
                 loader = job_configs.get("loader", None)
-                if job_configs.get("loader_conf"):
-                    loader_conf_path = path.parent.joinpath(job_configs["loader_conf"]).resolve()
+                # loader_conf
+                loader_conf = job_configs.get("loader_conf", None)
+                if isinstance(loader_conf, dict):
+                    loader_conf_data = loader_conf
+                    loader_conf_path = None  
+                elif isinstance(loader_conf, str):
+                    loader_conf_path = path.parent.joinpath(loader_conf).resolve()
+                    loader_conf_data = None  
                 else:
-                    loader_conf_path = ""
+                    loader_conf_data = None
+                    loader_conf_path = None
+
                 tasks = job_configs.get("tasks", [])
                 include_path = job_configs.get("include_path", "")
                 if include_path and not os.path.isabs(include_path):
                     include_path = path.parent.joinpath(job_configs["include_path"]).resolve()
 
-                peft_path_format = job_configs.get("peft_path_format", "{{fate_base}}/fate_flow/model/{{job_id}}/"
-                                                                       "guest/{{party_id}}/{{model_task_name}}/0/"
-                                                                       "output/output_model/model_directory")
+                peft_path_format = job_configs.get("peft_path_format",None)
 
+                model_weights_format = job_configs.get("model_weights_format",None)
+
+                requires_untar = job_configs.get("requires_untar",None)
+                
                 jobs.append(
                     LlmJob(
                         job_name=job_name, script_path=script_path, conf_path=conf_path,
                         model_task_name=model_task_name,
                         pretrained_model_path=pretrained_model_path, peft_path=peft_path, eval_conf_path=eval_conf_path,
-                        loader=loader, loader_conf_path=loader_conf_path, tasks=tasks, include_path=include_path,
-                        peft_path_format=peft_path_format
+                        loader=loader, loader_conf_path=loader_conf_data, tasks=tasks, include_path=include_path,
+                        peft_path_format=peft_path_format,
+                        model_weights_format=model_weights_format,
+                        model_weights=model_weights,
+                        requires_untar=requires_untar
                     )
                 )
 
@@ -127,7 +150,7 @@ class LlmSuite(object):
             )
         suite = LlmSuite(pairs=pairs, path=path)
         return suite
-
+    
     def update_status(
             self, pair_name, job_name, job_id=None, status=None, exception_id=None, time_elapsed=None, event=None
     ):
@@ -138,3 +161,5 @@ class LlmSuite(object):
 
     def get_final_status(self):
         return self._final_status
+
+    

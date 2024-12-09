@@ -1,0 +1,118 @@
+data:
+  guest:
+    namespace: experiment
+    name: arc_easy
+  host:
+    namespace: experiment
+    name: arc_easy
+    
+# Model configuration
+model:
+  pretrained_model_name_or_path: "Qwen-14B" # Please add your model path
+
+# Data Processor Configuration
+data_collator:
+  tokenizer_name_or_path: "Qwen-14B" # Please add your model path
+
+# Inference initialization configuration
+inference:
+  client:
+    api_url: "http://127.0.0.1:9999/v1"
+    api_model_name: "Qwen-14B" # Please add your model path
+    api_key: "demo"
+    inferdpt_kit_path: "/examples/pdss" # Please add your inferdpt_kit_path
+  server:
+    api_url: "http://127.0.0.1:9999/v1"
+    api_model_name: "Qwen-14B" # Please add your model path
+    api_key: "demo"
+
+# Dataset configuration
+dataset:
+  tokenizer_path: "Qwen-14B" # Please add your model path
+  predict_input_template: |
+    Predict:
+    Question:{{question}}
+    Choices:{{choices.text}}
+  predict_output_template: |
+    {{choices.text[choices.label.index(answerKey)]}}<end>
+  rationale_input_template: |
+    Explain:
+    Question:{{question}}
+    Choices:{{choices.text}}
+  rationale_output_template: |
+    {{infer_result}}<end>
+  max_input_length: 64
+  max_target_length: 64
+  split_key: "test"
+
+# Encoding and decoding templates
+template:
+  encoder_prompt: |
+    {{question}}
+    Choices:{{choices.text}}
+  decoder_prompt: |
+    Select Answer from Choices and explain it in "Rationale" with few words. Please refer to the example to write the rationale.Use <end> to finish your rationale.
+
+    Example(s):
+    Question:George wants to warm his hands quickly by rubbing them. Which skin surface will produce the most heat?
+    Choices:['dry palms', 'wet palms', 'palms covered with oil', 'palms covered with lotion']
+    Rationale:Friction between two surfaces generates heat due to the conversion of kinetic energy into thermal energy. Dry palms produce the most heat when rubbed together as they create higher friction compared to wet or lubricated palms, which reduce friction. Therefore, the answer is 'dry palms'.<end>
+
+    Question:{{perturbed_doc}}
+    Rationale:{{perturbed_response | replace('\n', '')}}<end>
+
+    Please explain:
+    Question:{{question}} 
+    Choices:{{choices.text}}
+  instruction_prompt: |
+    <|im_start|>system
+    You are a helpful assistant<|im_end|>
+    <|im_start|>user
+    Select Answer from Choices and explain it in "Rationale" with few words. Please refer to the example to write the rationale.
+    Use <end> to finish your rationale.
+
+    Example(s):
+    Question:Which factor will most likely cause a person to develop a fever?
+    Choices:['a leg muscle relaxing after exercise', 'a bacterial population in the bloodstream', 'several viral particles on the skin', 'carbohydrates being digested in the stomach']
+    Rationale:A bacterial infection in the bloodstream triggers the immune system to respond, therefore often causing a fever as the body tries to fight off the bacteria. Therefore, the answer is 'a bacterial population in the bloodstream'
+
+    Please explain:
+    Question:{{perturbed_doc}}
+    Rationale:
+    <|im_end|>
+    <|im_start|>assistant
+
+# Inference parameters
+inference_params:
+  remote:
+    stop: ['<|im_end|>', '<end>', '<end>\n', '<end>\n\n', '.\n\n\n\n\n', '<|end_of_text|>', '>\n\n\n']
+    temperature: 0.01
+    max_tokens: 256
+  local:
+    stop: ['<|im_end|>', '<end>', '<end>\n', '<end>\n\n', '.\n\n\n\n\n', '<|end_of_text|>', '>\n\n\n']
+    temperature: 0.01
+    max_tokens: 256
+
+# DeepSpeed ​​Configuration
+deepspeed_config:
+  train_micro_batch_size_per_gpu: 1
+  gradient_accumulation_steps: 8
+  optimizer:
+    type: "AdamW"
+    params:
+      lr: 5e-5
+  fp16:
+    enabled: true
+  zero_optimization:
+    stage: 0
+
+# Training parameters
+training:
+  batch_size: 1
+  gradient_accumulation_steps: 8
+  logging_steps: 10
+  max_steps: 30
+  log_level: "info"
+
+# Mode Configuration
+mode: "infer_and_train"

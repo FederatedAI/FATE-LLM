@@ -1,0 +1,29 @@
+data:
+  - file: /examples/pellm/sciq_t  # Please add your datasets path
+    table_name: sciq
+    namespace: experiment
+    role: guest_0
+  - file: /examples/pellm/sciq_t # Please add your datasets path
+    table_name: sciq
+    namespace: experiment
+    role: host_0
+offsite_tuning_gpt2_vs_zero_shot:
+  offsite_tuning_gpt2:
+    pretrained: "gpt2" # Please add your model path
+    script: "./offsite_tuning.py"
+    conf: "./offsite_tuning_config.yaml"
+    loader: "ot"
+    loader_conf: 
+      module_name: "offsite_tuning.gpt2"
+      item_name: "GPT2LMHeadMainModel"
+      emulator_layer_num: 11
+      adapter_top_layer_num: 2
+      adapter_bottom_layer_num: 2 
+    requires_untar: "{{fate_base}}/fate_flow/model/{{job_id}}/0/arbiter/{{party_id}}/{{model_task_name}}"
+    model_weights_format: "{{fate_base}}/fate_flow/model/{{job_id}}/0/arbiter/{{party_id}}/{{model_task_name}}/output_models/pytorch_model.bin"
+    tasks:
+      - "sciq"
+  gpt2_zero_shot:
+    pretrained: "gpt2" # Please add your model path
+    tasks:
+      - "sciq"
