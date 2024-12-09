@@ -24,6 +24,7 @@ class FedCoLLMTrainingArguments(Seq2SeqTrainingArguments):
     """
     top_k_logits_keep: int = field(default=128)
     top_k_strategy: str = field(default="highest")
+    vocab_size: int = field(default=None)
 
     """
     distillation params
@@ -35,8 +36,8 @@ class FedCoLLMTrainingArguments(Seq2SeqTrainingArguments):
     client_priv_data_local_epoch: int = field(default=1)
     global_epochs: int = field(default=1)
 
-    extra_args = ["top_k_logits_keep", "top_k_strategy", "distill_lambda",
-                  "distill_temperature", "server_public_data_local_epoch",
+    extra_args = ["top_k_logits_keep", "top_k_strategy", "vocab_size",
+                  "distill_lambda", "distill_temperature", "server_public_data_local_epoch",
                   "client_public_data_local_epoch", "client_priv_data_local_epoch",
                   "global_epochs"]
 

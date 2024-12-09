@@ -117,7 +117,7 @@ class FedCoLLMTrainer(Seq2SeqTrainer):
             self.distill_temperature
         )
 
-        src_logits = (
+        src_logits = recovery_logits(
             top_k_logits,
             top_k_indices,
             batch_size,

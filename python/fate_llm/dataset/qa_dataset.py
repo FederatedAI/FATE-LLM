@@ -324,7 +324,7 @@ class QaDataset(Dataset):
         return len(self.ds)
 
     def __getitem__(self, idx):
-        if self.return_with_index:
+        if self.return_with_idx:
             return {
                 "idx": idx,
                 "inputs": self.ds[idx]

@@ -15,7 +15,7 @@
 #
 import torch
 import logging
-from fedcollm_trainer import FedCoLLMTrainer
+from fate_llm.algo.fedcollm.fedcollm_trainer import FedCoLLMTrainer
 from typing import Dict, Optional, List, Callable, Union
 from fate.arch import Context
 from fate.ml.nn.trainer.trainer_base import FedArguments
@@ -28,7 +28,7 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.modeling_utils import unwrap_model
 from fate_llm.algo.fedmkt.utils.generate_logit_utils import generate_pub_data_logits
 from fate.ml.aggregator import AggregatorClientWrapper, AggregatorServerWrapper
-from fedcollm_training_args import FedCoLLMTrainingArguments
+from fate_llm.algo.fedcollm.fedcollm_training_args import FedCoLLMTrainingArguments
 from types import SimpleNamespace
 
 
@@ -116,9 +116,6 @@ class SLM(FedCoLLMBase):
         return self.training_args.to_slm_seq_training_args()
 
     def _init_aggregator(self, ctx: Context, fed_args: FedArguments):
-        if not self.training_args.post_fedavg:
-            return None
-
         aggregate_type = "weighted_mean"
         aggregator_name = "fedavg"
         aggregator = fed_args.aggregator
@@ -279,7 +276,7 @@ class LLM(FedCoLLMBase):
         for i, iter_ctx in self.ctx.on_iterations.ctxs_range(global_epochs):
             logger.info(f"begin {i}-th global kd process")
 
-            self.on_epoch_begin(iter_ctx, i)
+            self.on_epoch_begin(iter_ctx)
             logger.info(f"get pub data logits for llm of global epoch={i}")
             llm_pub_data_logits = self._get_logits(self.llm_model)
 
