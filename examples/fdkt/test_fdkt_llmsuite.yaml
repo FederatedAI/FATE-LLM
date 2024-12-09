@@ -8,7 +8,7 @@ data:
     namespace: experiment
     role: host_0
 fdkt:
-  fdkt_lora:
+  fdkt:
     pretrained: "Sheared-LLaMa-1.3B" # Please add your model path
     script: "./fdkt.py"
     conf: "./fdkt_config.yaml"

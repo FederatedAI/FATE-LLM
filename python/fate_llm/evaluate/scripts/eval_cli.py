@@ -140,11 +140,11 @@ def run_job_eval(job, eval_conf):
              
             loaded_model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))     
             
-            Custom_lm = CustomLM(pretrained=loaded_model,model_path=job.pretrained_model_path)     
+            custom_lm = CustomLM(pretrained=loaded_model,model_path=job.pretrained_model_path)     
              
             llm_evaluator.init_tasks()
             #result = llm_evaluator.evaluate(model=gpt2_lm, tasks="sciq")
-            result = llm_evaluator.evaluate(model=Custom_lm, tasks=job.tasks)
+            result = llm_evaluator.evaluate(model=custom_lm, tasks=job.tasks)
 
 
     else:
