@@ -34,7 +34,7 @@ with Communication Cost under 18 Kilobytes](./doc/tutorial/fedkseed/)
 - [InferDPT: Privacy-preserving Inference for Black-box Large Language Models](./doc/tutorial/inferdpt/inferdpt_tutorial.ipynb)
 - [FedMKT: Federated Mutual Knowledge Transfer for Large and Small
 Language Models](./doc/tutorial/fedmkt/)
-- [FedCoT: Federated Chain-of-Thought Distillation with Privacy-Preserving Mechanisms](./doc/tutorial/fedcot)
+- [FedCoT: Federated Chain-of-Thought Distillation for Large Language Models](./doc/tutorial/fedcot)
 - [FDKT: Federated Domain-Specific Knowledge Transfer on Large Language Models Using Synthetic Data](./doc/tutorial/fdkt)
 
 ## FATE-LLM Evaluate
