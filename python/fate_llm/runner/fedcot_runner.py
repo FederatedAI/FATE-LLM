@@ -24,8 +24,8 @@ from fate.components.components.nn.loader import Loader
 from fate.arch.dataframe import DataFrame
 from fate.ml.nn.dataset.base import Dataset
 from typing import Dict
-from fate_llm.algo.pdss.pdss_trainer import PDSSTrainerClient, PDSSTraineServer
-from fate_llm.algo.pdss.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
+from fate_llm.algo.fedcot.fedcot_trainer import FedCoTTrainerClient, FedCoTTraineServer
+from fate_llm.algo.fedcot.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
 from fate_llm.algo.inferdpt.init._init import InferInit
 import torch.nn as nn
 import torch.optim as optim
@@ -65,7 +65,7 @@ def _check_instances(
         raise TypeError(f"SetupReturn Error: data_collator must be callable but got {type(data_collator)}")
 
 
-class PDSSRunner(NNRunner):
+class FedCoTRunner(NNRunner):
     def __init__(
         self,
         mode: Literal['train_only', 'infer_only', 'infer_and_train'],
@@ -201,7 +201,7 @@ class PDSSRunner(NNRunner):
             infer_client = None # only rank 0 need to load the client
         
         # prepare trainer
-        trainer = PDSSTrainerClient(
+        trainer = FedCoTTrainerClient(
             ctx=ctx,
             training_args=training_args,
             train_set=train_set,
@@ -223,7 +223,7 @@ class PDSSRunner(NNRunner):
         return trainer
 
     def server_setup(self, stage="train"):
-        trainer = PDSSTraineServer(
+        trainer = FedCoTTraineServer(
             ctx=self.get_context(),
             infer_server=self._get_infer_inst(self.infer_inst_init_conf)
         )

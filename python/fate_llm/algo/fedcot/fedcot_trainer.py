@@ -25,7 +25,7 @@ from transformers import PreTrainedTokenizer
 import logging
 import torch
 import torch.distributed as dist
-from fate_llm.dataset.pdss_dataset import PrefixDataset
+from fate_llm.dataset.fedcot_dataset import PrefixDataset
 from transformers.modeling_utils import unwrap_model
 from transformers import PreTrainedTokenizer, PreTrainedModel
 from typing import Dict, Any
@@ -34,7 +34,7 @@ from transformers.trainer_utils import EvalPrediction
 from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainer, Seq2SeqTrainingArguments
 from fate_llm.inference.inference_base import Inference
 from fate_llm.algo.inferdpt.inferdpt import InferDPTClient, InferDPTServer
-from fate_llm.algo.pdss.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
+from fate_llm.algo.fedcot.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
 
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,7 @@ class DSSTrainerClient(Seq2SeqTrainer):
         return (loss, {'rationale_loss': cot_outputs, 'predict_loss': label_outputs}) if return_outputs else loss
 
 
-class PDSSTrainerClient(DSSTrainerClient):
+class FedCoTTrainerClient(DSSTrainerClient):
 
     def __init__(self,
         ctx: Context,
@@ -221,7 +221,7 @@ class PDSSTrainerClient(DSSTrainerClient):
         return self.infer_result
 
 
-class PDSSTraineServer(object):
+class FedCoTTraineServer(object):
 
     def __init__(self, ctx: Context, infer_server: Union[SLMEncoderDecoderServer, InferDPTServer]):
         super().__init__()
