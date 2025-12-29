@@ -17,7 +17,8 @@ import os
 from typing import Optional, Union, Sequence, Mapping, Dict
 
 from datasets import load_dataset, Features, Split, DownloadConfig, DownloadMode, VerificationMode, Version, load_from_disk
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoProcessor
+from PIL import Image
 
 from fate.ml.nn.dataset.base import Dataset
 
@@ -212,4 +213,29 @@ class Dolly15K(HuggingfaceDataset):
             return tokenizer(examples["text"], **self.tokenizer_apply_params)
 
         dataset = dataset.map(tokenize_function, batched=True)
+        return dataset
+
+
+class MultimodalDataset(HuggingfaceDataset):
+    def __init__(self, processor_name_or_path, image_column="image", text_column="text", *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.processor_name_or_path = processor_name_or_path
+        self.image_column = image_column
+        self.text_column = text_column
+        self.inplace_load = False
+
+    def load(self, file_path):
+        dataset = super().load(file_path)
+        return self._post_process(dataset)
+
+    def _post_process(self, dataset):
+        processor = AutoProcessor.from_pretrained(self.processor_name_or_path, trust_remote_code=self.trust_remote_code)
+
+        def transform(examples):
+            images = [Image.open(x).convert("RGB") if isinstance(x, str) else x.convert("RGB") for x in examples[self.image_column]]
+            texts = examples[self.text_column]
+            inputs = processor(text=texts, images=images, return_tensors="pt", padding=True)
+            return inputs
+
+        dataset.set_transform(transform)
         return dataset
