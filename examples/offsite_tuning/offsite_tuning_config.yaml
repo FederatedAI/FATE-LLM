@@ -1,0 +1,67 @@
+# params.yaml
+
+paths:
+  pretrained_model_path: 'gpt2'
+
+pipeline:
+  guest: '9999'
+  arbiter: '9999'
+  namespace: 'experiment'
+  name: 'sciq'
+  engine_run:
+    cores: 1
+
+training:
+  batch_size: 1
+  learning_rate: 5e-5
+  num_train_epochs: 1
+  logging_steps: 10
+  deepspeed:
+    train_micro_batch_size_per_gpu: 1
+    optimizer:
+      type: "Adam"
+      params:
+        lr: 5e-5
+        torch_adam: true
+        adam_w_mode: false
+    fp16:
+      enabled: true
+    gradient_accumulation_steps: 1
+    zero_optimization:
+      stage: 2
+      allgather_partitions: true
+      allgather_bucket_size: 1e8
+      overlap_comm: true
+      reduce_scatter: true
+      reduce_bucket_size: 1e8
+      contiguous_gradients: true
+      offload_optimizer:
+        device: "cpu"
+      offload_param:
+        device: "cpu"
+
+models:
+  client:
+    module_name: 'offsite_tuning.gpt2'
+    item_name: 'GPT2LMHeadSubModel'
+    emulator_layer_num: 11
+    adapter_top_layer_num: 2
+    adapter_bottom_layer_num: 2
+
+  server:
+    module_name: 'offsite_tuning.gpt2'
+    item_name: 'GPT2LMHeadMainModel'
+    emulator_layer_num: 11
+    adapter_top_layer_num: 2
+    adapter_bottom_layer_num: 2
+
+dataset:
+  module_name: 'qa_dataset'
+  item_name: 'QaDataset'
+  tokenizer_name_or_path: 'gpt2'
+  select_num: 100
+
+data_collator:
+  module_name: 'data_collator.cust_data_collator'
+  item_name: 'get_seq2seq_data_collator'
+  tokenizer_name_or_path: 'gpt2'

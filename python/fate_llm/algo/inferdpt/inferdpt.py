@@ -23,7 +23,7 @@ from fate.ml.nn.dataset.base import Dataset
 from fate_llm.algo.inferdpt.utils import InferDPTKit
 from openai import OpenAI
 import logging
-from fate_llm.algo.inferdpt.inference.inference_base import Inference
+from fate_llm.inference.inference_base import Inference
 from fate_llm.algo.inferdpt._encode_decode import EncoderDecoder
 from fate_llm.dataset.hf_dataset import HuggingfaceDataset
 
@@ -113,7 +113,7 @@ class InferDPTClient(EncoderDecoder):
         return docs_with_infer_result
 
     def inference(self, docs: Union[List[Dict[str, str]], HuggingfaceDataset],
-                doc_template: str,
+                encode_template: str,
                 instruction_template: str,
                 decode_template: str,
                 verbose: bool = False,
@@ -128,7 +128,7 @@ class InferDPTClient(EncoderDecoder):
         # perturb doc
         if isinstance(docs, HuggingfaceDataset):
             docs = [docs[i] for i in range(len(docs))]
-        docs_with_p = self.encode(docs, format_template=doc_template, verbose=verbose, perturb_doc_key=perturb_doc_key)
+        docs_with_p = self.encode(docs, format_template=encode_template, verbose=verbose, perturb_doc_key=perturb_doc_key)
         logger.info('encode done')
         # inference using perturbed doc
         final_result = self.decode(

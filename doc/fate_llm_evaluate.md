@@ -1,7 +1,7 @@
-## FATE-Llm Python SDK
+## FATE-LLM Python SDK
 
-FATE-Llm Python SDK provides simple API for evaluating large language models.
-Built on [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/), our evaluation tool may be used on pre-trained models from Huggingface, local-built models, as well as FATE-Llm models. 
+FATE-LLM Python SDK provides simple API for evaluating large language models.
+Built on [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/), our evaluation tool may be used on pre-trained models from Huggingface, local-built models, as well as FATE-LLM models. 
 [Built-in datasets](#built-in-tasks) currently include Dolly-15k and Advertise Generation.
 Below shows how to evaluate given llm model in few lines. For quick single-model evaluation, below steps should suffice, however, if comparative evaluation among multiple models is desired, CLI is recommended.
 
@@ -35,10 +35,17 @@ When network allows, or if already cached, tasks from lm-evaluation may be provi
     llm_evaluator.evaluate(model=gpt2_lm, tasks="ceval", show_result=True)
 ```
 
-## FATE-Llm Command Line Interface
+## FATE-LLM Command Line Interface
 
-FATE Llm provides built-in tasks for comparing evaluation results of different llm models. 
+FATE LLM provides built-in tasks for comparing evaluation results of different llm models. 
 Alternatively, user may provide arbitrary tasks for evaluation.
+
+### install
+
+```bash
+cd {path_to_fate_llm}/python
+pip install -e .
+```
 
 ### command options
 
@@ -118,11 +125,11 @@ fate_llm config --help
     will download corresponding data for given tasks 
 
 
-### FATE-Llm Eval job configuration
+### FATE-LLM Eval job configuration
 
 Configuration of jobs should be specified in a yaml file. 
 
-A FATE-Llm testsuite includes the following elements:
+A FATE-LLM testsuite includes the following elements:
 
 - job group: each group includes arbitrary number of jobs with paths
   to corresponding script and configuration
@@ -159,7 +166,7 @@ A FATE-Llm testsuite includes the following elements:
   
 ## Built-in Tasks
 
-Currently, we include the following tasks in FATE-Llm Evaluate:
+Currently, we include the following tasks in FATE-LLM Evaluate:
 
 | Task Name |     Alias     | Task Type  | Metric  |                                  source                                   |
 |:---------:|:-------------:|:----------:|:-------:|:-------------------------------------------------------------------------:|
