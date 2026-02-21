@@ -28,14 +28,16 @@ Use [FATE-LLM deployment packages](https://github.com/FederatedAI/FATE/wiki/Down
 
 - [Federated ChatGLM3-6B Training](doc/tutorial/pellm/ChatGLM3-6B_ds.ipynb)
 - [Builtin Models In PELLM](doc/tutorial/pellm/builtin_pellm_models.md)
+- [FedMKT: Federated Mutual Knowledge Transfer for Large and Small
+Language Models](./doc/tutorial/fedmkt/)
+- [FedCoT: Federated Chain-of-Thought Distillation for Large Language Models](./doc/tutorial/fedcot)
+- [PPC-GPT: Federated Task-Specific Compression of Large Language
+Models via Pruning and Chain-of-Thought Distillation](https://aclanthology.org/2025.emnlp-main.747.pdf)
+- [FDKT: Federated Domain-Specific Knowledge Transfer on Large Language Models Using Synthetic Data](./doc/tutorial/fdkt)
 - [Offsite Tuning: Transfer Learning without Full Model](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
 - [FedKSeed: Federated Full-Parameter Tuning of Billion-Sized Language Models
 with Communication Cost under 18 Kilobytes](./doc/tutorial/fedkseed/)
 - [InferDPT: Privacy-preserving Inference for Black-box Large Language Models](./doc/tutorial/inferdpt/inferdpt_tutorial.ipynb)
-- [FedMKT: Federated Mutual Knowledge Transfer for Large and Small
-Language Models](./doc/tutorial/fedmkt/)
-- [PDSS: A Privacy-Preserving Framework for Step-by-Step Distillation of Large Language Models](./doc/tutorial/pdss)
-- [FDKT: Federated Domain-Specific Knowledge Transfer on Large Language Models Using Synthetic Data](./doc/tutorial/fdkt)
 
 ## FATE-LLM Evaluate
 

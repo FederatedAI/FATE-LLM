@@ -16,10 +16,10 @@
 
 from fate_llm.algo.inferdpt.init._init import InferInit
 from fate_llm.inference.api import APICompletionInference
-from fate_llm.algo.pdss.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
+from fate_llm.algo.fedcot.encoder_decoder.slm_encoder_decoder import SLMEncoderDecoderClient, SLMEncoderDecoderServer
 
 
-class PDSSEDAPIClientInit(InferInit):
+class FedCoTEDAPIClientInit(InferInit):
 
     api_url = ''
     api_model_name = ''
@@ -35,7 +35,7 @@ class PDSSEDAPIClientInit(InferInit):
         return client
 
 
-class PDSSEDAPIServerInit(InferInit):
+class FedCoTEDAPIServerInit(InferInit):
 
     api_url = ''
     api_model_name = ''
