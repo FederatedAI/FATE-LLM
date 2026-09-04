@@ -33,6 +33,7 @@ Language Models](./doc/tutorial/fedmkt/)
 - [FedCoT: Federated Chain-of-Thought Distillation for Large Language Models](./doc/tutorial/fedcot)
 - [PPC-GPT: Federated Task-Specific Compression of Large Language
 Models via Pruning and Chain-of-Thought Distillation](https://aclanthology.org/2025.emnlp-main.747.pdf)
+- [FedProxy: Federated Fine-Tuning of LLMs via Proxy SLMs and Heterogeneity-Aware Fusion](https://aclanthology.org/2026.acl-long.794.pdf)
 - [FDKT: Federated Domain-Specific Knowledge Transfer on Large Language Models Using Synthetic Data](./doc/tutorial/fdkt)
 - [Offsite Tuning: Transfer Learning without Full Model](./doc/tutorial/offsite_tuning/Offsite_tuning_tutorial.ipynb)
 - [FedKSeed: Federated Full-Parameter Tuning of Billion-Sized Language Models
